@@ -1,0 +1,12 @@
+AI Agent Instructions
+1.	Instruction Prompt:
+I have started a new chat. 
+We are developing an app as described in @EcoCart_Requirements.txt using Expo, React Native and Transcript. Use @cursorrules as a guide on coding styles. You may find the other documents relevant. Much work has been done. You may refer to @ChatHistory_25-03-14 in folder ./context_docs for where we have been in this app development and where we are headed, which is towards production. Document @progress_report_250314.md in folder ./context_docs gives an outline of our Roadmap. We were finalizing section 2 (Short Term Goals) of Next Steps Priority. Document @StrategicRoadmapToProduction_2925-03-09.txt may hopefully also give you some ideas. There are several documents in ./docs that have been generated to describe various aspects of the project, as-done or intended, and README.md in the root folder.
+2.	Cursor Chat References (@Docs):
+2.1.	@Docs_Expo: https://docs.expo.dev/
+2.2.	@Docs_Typescript: https://devdocs.io/typescript~5.1/
+2.3.	@Docs_Jest: https://jestjs.io/docs/getting-started
+2.4.	@Docs_ReactNative: https://reactnative.dev/
+2.5.	@Docs_Sixty60: https://www.sixty60.co.za/
+2.6.	@.cursorrules
+2.7.	@EcoCart_Requirements.txt

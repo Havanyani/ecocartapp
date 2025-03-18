@@ -1,0 +1,6 @@
+Document Path,Last Review Date,Reviewers,Status,Action Items,Due Date,Next Review Date
+/docs/architecture/overview.md,2025-03-18,@architect-lead;@tech-lead,Passed,None,N/A,2025-04-02
+/docs/guides/styling-and-theming.md,2025-03-18,@ui-lead;@dev-experience-lead,Passed,None,N/A,2025-04-02
+/src/components/sustainability/README.md,2025-03-18,@sustainability-lead;@analytics-lead,Passed,None,N/A,2025-03-28
+/docs/documentation-review-checklist.md,2025-03-18,@dev-experience-lead;@documentation-lead,Passed,None,N/A,2025-04-02
+/docs/documentation-ownership.md,2025-03-18,@documentation-lead;@tech-lead,Needs Improvement,"Add missing roles for new teams",2025-03-25,2025-04-02 

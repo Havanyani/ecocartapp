@@ -1,0 +1,28 @@
+ Volume in drive D is Seagate
+ Volume Serial Number is 8AC9-7DB9
+
+ Directory of .\node_modules\i18n-js\dist\import
+
+05/03/2025  19:10    <DIR>          .
+05/03/2025  19:09    <DIR>          ..
+05/03/2025  19:08            84,691 bignumber.js
+05/03/2025  19:10    <DIR>          helpers
+05/03/2025  19:08            13,006 I18n.js
+05/03/2025  19:10            11,222 I18n.js.map
+05/03/2025  19:09               250 index.js
+05/03/2025  19:10               304 index.js.map
+05/03/2025  19:09             1,598 Locales.js
+05/03/2025  19:10             1,931 Locales.js.map
+05/03/2025  19:09           130,711 lodash.js
+05/03/2025  19:10               676 lodash.js.map
+05/03/2025  19:09            24,291 make-plural.js
+05/03/2025  19:10             2,308 make-plural.js.map
+05/03/2025  19:09             1,744 MissingTranslation.js
+05/03/2025  19:10             2,018 MissingTranslation.js.map
+05/03/2025  19:09               845 Pluralization.js
+05/03/2025  19:10             1,005 Pluralization.js.map
+05/03/2025  19:10    <DIR>          pluralize
+05/03/2025  19:09                45 typing.js
+05/03/2025  19:10               107 typing.js.map
+              17 File(s)        276,752 bytes
+               4 Dir(s)  262,486,044,672 bytes free

@@ -1,0 +1,10 @@
+🚀 What's New in Version 1.0.0
+
+• Initial release of EcoCart
+• Schedule plastic waste collection alongside grocery deliveries
+• Earn credits for recycled materials
+• Redeem credits for discounts and rewards
+• Track your environmental impact with detailed analytics
+• Offline support for using the app without internet connection
+• Push notifications for collection reminders and updates
+• User-friendly interface for easy navigation 

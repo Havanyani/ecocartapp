@@ -1,0 +1,80 @@
+EcoCart - Integrating grocery delivery with plastic waste collection:
+To establish a waste management business that will provide recycling rewards to shoppers, integrated with home grocery deliveries. 
+The plan is to intercept waste (plastic, electronics etc) at the household. Since a lot of waste comes from households, in the business model of EcoCart deliverers of grocery will collect waste plastic from homes on their return leg to the grocery store, for delivery to collection depots at the various grocery stores, in exchange for which a shopper will receive credit on subsequent purchases in their shopping account. The credit will be calculated on the basis of the weight of waste of each category delivered from the shopper's address.
+This business model will not be selling anything, at least not in the beginning, but buying waste under the rewards system. Whatever Product Catalog and Payments System that may be created in the app will likely be dormant until EcoCart start to sell something. EcoCart will be paying the grocery store for the discounts that shoppers will get on their purchases as it will be the buyer of the waste.
+EcoCart will propose this functionality for API integration with grocery stores that have existing home grocery delivery services managed from a mobile app, such as CheckersSixty60 (As referenced at @CheckersSixty60_1).
+1.	App User Requirements
+
+1.1.	Customer Features
+1.1.1.	User-Friendly Interface: An intuitive design that simplifies navigation.
+1.1.2.	Plastic Collection Scheduling: A feature that enables customers to schedule plastic waste pickups during their grocery delivery.
+1.1.3.	Weight Tracking System: A mechanism to calculate credits based on weight for future purchases.
+1.1.4.	Shopping Account Credits: Display accumulated credits in the user's account, redeemable against future purchases.
+1.1.5.	Real-Time Order Tracking: Customers can track their grocery orders and the status of their plastic pickups in real time.
+1.1.6.	Push Notifications: Alerts for order confirmations, delivery updates, promotional offers, and reminders for scheduled pickups.
+1.1.7.	Feedback and Reviews: Customers can leave ratings and reviews for the plastic collection service.
+
+1.2.	Delivery Personnel Features
+1.2.1.	Delivery Route Optimization: Algorithms to optimize routes plastic waste pickups to enhance efficiency.
+1.2.2.	Plastic Weight Entry: A feature for deliverers to input the weight of collected plastics during pickups.
+1.2.3.	Real-Time Updates: Deliverers receive notifications about pickups, and changes in schedules.
+
+2.	Functional Requirements
+2.1.	Backend Features
+2.1.1.	Analytics Dashboard: Track user engagement, collected plastic weights, and credit calculations for insights into business performance.
+2.1.2.	User Management System: Handle user accounts, including registration, login/logout functionalities, and profile management.
+2.1.3.	API Integrations: Connect with third-party services for grocery delivery and GPS tracking.
+
+2.2.	Environmental Management Features
+2.2.1.	Sustainability Metrics Tracking: Monitor the amount of plastic collected through the app to report on environmental impact.
+2.2.2.	Eco-Friendly Packaging Options: Provide customers with choices for eco-friendly packaging during checkout.
+
+3.	Technical Requirements
+3.1.	Mobile Platform Compatibility: The app should be compatible with both iOS and Android devices.
+3.2.	Cloud-Based Infrastructure: Use cloud services to store data securely and ensure scalability as user demand grows.
+3.3.	Data Security Measures: Implement robust security protocols to protect user data and payment information.
+
+4.	Additional Considerations
+4.1.	Marketing Features: Incorporate loyalty programs or promotional credits that encourage users to participate in the plastic collection initiative.
+4.2.	Community Engagement Tools: Features that allow users to engage with sustainability initiatives or share their experiences within the app.
+ 
+Minimum Wireframe for EcoCart Plastic Collection App:
+Wireframes for the key user flows: Customer (ordering groceries and scheduling plastic pickup) and Delivery Personnel (receiving pickup requests and updating pickup status).
+Customer Wireframes
+Home Screen:
+Display: Search bar, grocery categories, promotional banners.
+Elements: Navigation menu Account, Orders, Credits, Help).
+Grocery Selection:
+Display: List of available groceries, ability to add items to cart.
+Elements: Quantity selector, product details, "Add to Cart" button.
+Shopping Cart:
+Display: List of selected items, total cost, option to add delivery notes.
+Elements: "Schedule Plastic Pickup" toggle/button, "Checkout" button.
+Plastic Pickup Scheduling:
+Display: Date and time selection for pickup, address confirmation.
+Elements: Calendar, time slots, address field (pre-filled), "Confirm Pickup" button.
+Order Confirmation:
+Display: Order summary, scheduled delivery time, plastic pickup time, total cost.
+Elements: Order number, "Track Order" button.
+Account Screen:
+Display: User profile information.
+Elements: Display of accumulated credits, transaction history, settings.
+Delivery Personnel Wireframes
+Dashboard:
+Display: List of assigned deliveries/pickups, map view of route.
+Elements: Delivery details (customer name, address, order items), "Start Route" button.
+Pickup Details:
+  Display: Customer details, pickup instructions, weight input field.
+  Elements: "Enter Weight" field, camera button (for optional photo), "Pickup Complete" button.
+Route Optimization:
+Display: Optimized route on a map, list of deliveries in order.
+Elements: Turn-by-turn navigation, estimated time of arrival.
+Real-Time Updates:
+Display: Notifications for new pickups, changes in schedule.
+Elements: Alert messages, update details.
+General Elements
+Consistent UI elements across all screens (buttons, icons, fonts).
+Clear labeling and instructions.
+Use of placeholders for images and content.
+These wireframes provide a basic structure and flow for the EcoCart app. 
+
