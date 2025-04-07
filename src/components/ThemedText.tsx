@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { StyleSheet, Text, TextProps } from 'react-native';
 
 interface ThemedTextProps extends TextProps {
@@ -16,7 +16,7 @@ export function ThemedText({
     <Text
       style={[
         styles.text,
-        { color: theme.colors.text[variant] },
+        { color: variant === 'primary' ? theme.theme.colors.text : theme.theme.colors.textSecondary },
         style,
       ]}
       {...props}

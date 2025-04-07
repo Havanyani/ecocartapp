@@ -1,5 +1,5 @@
 import { useOfflineState } from '@/hooks/useOfflineState';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { CommunityForumProps as ForumProps, ForumThread } from '@/types/forum';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -26,11 +26,11 @@ interface ForumThreadProps {
 
 // Thread Item Component
 const ThreadItem: React.FC<ForumThreadProps> = ({ thread, onPress }) => {
-  const { theme } = useTheme();
+  const theme = useTheme();
   
   return (
     <TouchableOpacity 
-      style={[styles.threadItem, { backgroundColor: theme.colors.background }]} 
+      style={[styles.threadItem, { backgroundColor: theme.theme.colors.background }]} 
       onPress={() => onPress(thread.id)}
       accessible
       accessibilityLabel={`Forum thread: ${thread.title}`}
@@ -39,27 +39,27 @@ const ThreadItem: React.FC<ForumThreadProps> = ({ thread, onPress }) => {
       <View style={styles.threadHeader}>
         <View style={styles.threadTitleContainer}>
           {thread.isSticky && (
-            <Ionicons name="pin" size={16} color={theme.colors.primary} style={styles.threadIcon} />
+            <Ionicons name="pin" size={16} color={theme.theme.colors.primary} style={styles.threadIcon} />
           )}
           {thread.isLocked && (
-            <Ionicons name="lock-closed" size={16} color={theme.colors.primary} style={styles.threadIcon} />
+            <Ionicons name="lock-closed" size={16} color={theme.theme.colors.primary} style={styles.threadIcon} />
           )}
-          <Text style={[styles.threadTitle, { color: theme.colors.text }]} numberOfLines={2}>
+          <Text style={[styles.threadTitle, { color: theme.theme.colors.text }]} numberOfLines={2}>
             {thread.title}
           </Text>
         </View>
-        <Text style={[styles.threadDate, { color: theme.colors.text }]}>
+        <Text style={[styles.threadDate, { color: theme.theme.colors.text }]}>
           {format(thread.lastUpdatedAt, 'MMM d, yyyy')}
         </Text>
       </View>
       
       <View style={styles.threadMeta}>
-        <Text style={[styles.threadAuthor, { color: theme.colors.text }]}>
+        <Text style={[styles.threadAuthor, { color: theme.theme.colors.text }]}>
           {thread.authorName}
         </Text>
         <View style={styles.threadStats}>
-          <Ionicons name="chatbubble-outline" size={14} color={theme.colors.text} />
-          <Text style={[styles.threadMessages, { color: theme.colors.text }]}>
+          <Ionicons name="chatbubble-outline" size={14} color={theme.theme.colors.text} />
+          <Text style={[styles.threadMessages, { color: theme.theme.colors.text }]}>
             {thread.messageCount}
           </Text>
         </View>
@@ -68,8 +68,8 @@ const ThreadItem: React.FC<ForumThreadProps> = ({ thread, onPress }) => {
       {thread.tags.length > 0 && (
         <View style={styles.tagsContainer}>
           {thread.tags.map((tag, index) => (
-            <View key={index} style={[styles.tagBadge, { backgroundColor: `${theme.colors.primary}20` }]}>
-              <Text style={[styles.tagText, { color: theme.colors.primary }]}>
+            <View key={index} style={[styles.tagBadge, { backgroundColor: `${theme.theme.colors.primary}20` }]}>
+              <Text style={[styles.tagText, { color: theme.theme.colors.primary }]}>
                 {tag}
               </Text>
             </View>
@@ -77,7 +77,7 @@ const ThreadItem: React.FC<ForumThreadProps> = ({ thread, onPress }) => {
         </View>
       )}
       
-      <Text style={[styles.threadPreview, { color: theme.colors.text }]} numberOfLines={2}>
+      <Text style={[styles.threadPreview, { color: theme.theme.colors.text }]} numberOfLines={2}>
         {thread.lastMessagePreview}
       </Text>
     </TouchableOpacity>
@@ -92,7 +92,7 @@ export function CommunityForum({
   showNewThreadButton = true,
   onNewThreadPress
 }: ForumProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { isOnline } = useOfflineState();
   
   const [threads, setThreads] = useState<ForumThread[]>([]);
@@ -257,15 +257,15 @@ export function CommunityForum({
         key={category}
         style={[
           styles.categoryPill,
-          { backgroundColor: isSelected ? theme.colors.primary : theme.colors.background },
-          { borderColor: theme.colors.primary }
+          { backgroundColor: isSelected ? theme.theme.colors.primary : theme.theme.colors.background },
+          { borderColor: theme.theme.colors.primary }
         ]}
         onPress={() => setSelectedCategory(isSelected ? null : category)}
       >
         <Text
           style={[
             styles.categoryText,
-            { color: isSelected ? '#FFFFFF' : theme.colors.primary }
+            { color: isSelected ? '#FFFFFF' : theme.theme.colors.primary }
           ]}
         >
           {category}
@@ -279,10 +279,10 @@ export function CommunityForum({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
         {showNewThreadButton && (
           <TouchableOpacity
-            style={[styles.newThreadButton, { backgroundColor: theme.colors.primary }]}
+            style={[styles.newThreadButton, { backgroundColor: theme.theme.colors.primary }]}
             onPress={handleNewThread}
             disabled={!isOnline}
           >
@@ -294,18 +294,18 @@ export function CommunityForum({
         )}
         
         {showSearch && (
-          <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
-            <Ionicons name="search" size={20} color={theme.colors.text} />
+          <View style={[styles.searchContainer, { backgroundColor: theme.theme.colors.background }]}>
+            <Ionicons name="search" size={20} color={theme.theme.colors.text} />
             <TextInput
-              style={[styles.searchInput, { color: theme.colors.text }]}
+              style={[styles.searchInput, { color: theme.theme.colors.text }]}
               placeholder="Search threads..."
-              placeholderTextColor={theme.colors.text}
+              placeholderTextColor={theme.theme.colors.text}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery ? (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={theme.colors.text} />
+                <Ionicons name="close-circle" size={20} color={theme.theme.colors.text} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -324,9 +324,9 @@ export function CommunityForum({
         )}
         
         {!isOnline && (
-          <View style={[styles.offlineNotice, { backgroundColor: `${theme.colors.primary}20` }]}>
-            <Ionicons name="cloud-offline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.offlineText, { color: theme.colors.primary }]}>
+          <View style={[styles.offlineNotice, { backgroundColor: `${theme.theme.colors.primary}20` }]}>
+            <Ionicons name="cloud-offline" size={16} color={theme.theme.colors.primary} />
+            <Text style={[styles.offlineText, { color: theme.theme.colors.primary }]}>
               You're offline. Some content may be unavailable.
             </Text>
           </View>
@@ -334,17 +334,17 @@ export function CommunityForum({
         
         {isLoading && !isRefreshing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={[styles.loadingText, { color: theme.colors.text }]}>
+            <ActivityIndicator size="large" color={theme.theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.theme.colors.text }]}>
               Loading forum threads...
             </Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle" size={48} color="#FF3B30" />
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
+            <Text style={[styles.errorText, { color: theme.theme.colors.text }]}>{error}</Text>
             <TouchableOpacity
-              style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+              style={[styles.retryButton, { backgroundColor: theme.theme.colors.primary }]}
               onPress={loadForumThreads}
             >
               <Text style={[styles.retryText, { color: "#FFFFFF" }]}>Retry</Text>
@@ -352,8 +352,8 @@ export function CommunityForum({
           </View>
         ) : filteredThreads.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text} />
-            <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+            <Ionicons name="chatbubbles-outline" size={48} color={theme.theme.colors.text} />
+            <Text style={[styles.emptyText, { color: theme.theme.colors.text }]}>
               {searchQuery
                 ? `No threads found for "${searchQuery}"`
                 : selectedCategory
@@ -368,7 +368,7 @@ export function CommunityForum({
                   setSelectedCategory(null);
                 }}
               >
-                <Text style={[styles.clearFiltersText, { color: theme.colors.primary }]}>
+                <Text style={[styles.clearFiltersText, { color: theme.theme.colors.primary }]}>
                   Clear filters
                 </Text>
               </TouchableOpacity>
@@ -386,8 +386,8 @@ export function CommunityForum({
               <RefreshControl
                 refreshing={isRefreshing}
                 onRefresh={handleRefresh}
-                colors={[theme.colors.primary]}
-                tintColor={theme.colors.primary}
+                colors={[theme.theme.colors.primary]}
+                tintColor={theme.theme.colors.primary}
               />
             }
             ItemSeparatorComponent={() => <View style={styles.separator} />}

@@ -14,7 +14,7 @@ interface MaterialSelectorProps {
 }
 
 export function MaterialSelector({ value, onChange, materials, error }: MaterialSelectorProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
   const [isOpen, setIsOpen] = useState(false);
   const selectedMaterial = materials.find(m => m.id === value);
 

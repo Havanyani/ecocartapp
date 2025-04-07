@@ -2,7 +2,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useDeliveryPersonnel } from '@/hooks/useDeliveryPersonnel';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { DeliveryPersonnel } from '@/types/DeliveryPersonnel';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
@@ -12,7 +12,7 @@ interface DeliveryPersonnelListProps {
 }
 
 export function DeliveryPersonnelList({ onPersonnelSelect }: DeliveryPersonnelListProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { personnel, isLoading, error, searchPersonnel } = useDeliveryPersonnel();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -38,7 +38,7 @@ export function DeliveryPersonnelList({ onPersonnelSelect }: DeliveryPersonnelLi
       case 'OFF_DUTY':
         return theme.colors.error;
       default:
-        return theme.colors.text.secondary;
+        return theme.colors.textSecondary;
     }
   };
 

@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { collectionService } from '@/services/CollectionService';
 import { selectCollections, selectError, selectIsLoading, setCollections, setError } from '@/store/slices/collectionSlice';
 import { Collection, CollectionStatus } from '@/types/Collection';
@@ -32,7 +32,7 @@ interface TodoProps {
 }
 
 export function Todo({ type = 'all', maxItems = 3, onTaskComplete, onViewAll, testID }: TodoProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const dispatch = useDispatch();
   const collections = useSelector(selectCollections);
   const isLoading = useSelector(selectIsLoading);

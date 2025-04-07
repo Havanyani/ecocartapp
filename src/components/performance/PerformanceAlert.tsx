@@ -1,7 +1,7 @@
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +19,8 @@ export function PerformanceAlert({ alert, onDismiss }: {
   alert: AlertData; 
   onDismiss: () => void;
 }) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;

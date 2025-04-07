@@ -2,7 +2,7 @@ import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 
@@ -12,7 +12,8 @@ interface AccessibleErrorViewProps {
 }
 
 export function AccessibleErrorView({ error, onReset }: AccessibleErrorViewProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   React.useEffect(() => {
     AccessibilityInfo.announceForAccessibility('An error has occurred. Try again button is available.');

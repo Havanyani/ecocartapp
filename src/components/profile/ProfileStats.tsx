@@ -9,7 +9,7 @@ interface ProfileStatsProps {
 }
 
 export function ProfileStats({ profile }: ProfileStatsProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <View style={styles.container}>

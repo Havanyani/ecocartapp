@@ -54,7 +54,7 @@ describe('ThemedText', () => {
     const text = getByText('Hello World');
     expect(text.props.style).toEqual(
       expect.arrayContaining([
-        expect.objectContaining(mockTheme.theme.colors.text.primary)
+        expect.objectContaining(mockTheme.theme.colors.text)
       ])
     );
   });
@@ -67,7 +67,7 @@ describe('ThemedText', () => {
     const text = getByText('Secondary Text');
     expect(text.props.style).toEqual(
       expect.arrayContaining([
-        expect.objectContaining(mockTheme.theme.colors.text.secondary)
+        expect.objectContaining(mockTheme.theme.colors.textSecondary)
       ])
     );
   });
@@ -150,9 +150,9 @@ describe('ThemedText', () => {
     const flattenedStyle = StyleSheet.flatten(textElement.props.style);
     
     const expectedStyle = {
-      fontSize: mockTheme.theme.colors.text.primary.fontSize,
-      fontWeight: mockTheme.theme.colors.text.primary.fontWeight,
-      color: mockTheme.theme.colors.text.primary.color
+      fontSize: mockTheme.theme.colors.text.fontSize,
+      fontWeight: mockTheme.theme.colors.text.fontWeight,
+      color: mockTheme.theme.colors.text.color
     } satisfies TextStyle;
     
     expect(flattenedStyle).toMatchObject(expectedStyle);
@@ -179,7 +179,7 @@ describe('ThemedText', () => {
     const flattenedStyle = StyleSheet.flatten(textElement.props.style);
 
     const expectedStyle = {
-      fontSize: mockTheme.theme.colors.text.primary.fontSize,
+      fontSize: mockTheme.theme.colors.text.fontSize,
       fontWeight: '700' as FontWeight,
       marginTop: 10,
       color: 'red'
@@ -198,7 +198,7 @@ describe('ThemedText', () => {
     const textElement = getByTestId('themed-text');
     const flattenedStyle = StyleSheet.flatten(textElement.props.style);
 
-    expect(flattenedStyle).toMatchObject(mockTheme.theme.colors.text.secondary);
+    expect(flattenedStyle).toMatchObject(mockTheme.theme.colors.textSecondary);
   });
 
   it('handles style arrays', () => {
@@ -221,7 +221,7 @@ describe('ThemedText', () => {
     const flattenedStyle = StyleSheet.flatten(textElement.props.style);
 
     expect(flattenedStyle).toMatchObject({
-      ...mockTheme.theme.colors.text.primary,
+      ...mockTheme.theme.colors.text,
       marginTop: 5,
       paddingLeft: 10
     });
@@ -237,6 +237,6 @@ describe('ThemedText', () => {
     const textElement = getByTestId('themed-text');
     const flattenedStyle = StyleSheet.flatten(textElement.props.style);
 
-    expect(flattenedStyle).toMatchObject(mockTheme.theme.colors.text.primary);
+    expect(flattenedStyle).toMatchObject(mockTheme.theme.colors.text);
   });
 }); 

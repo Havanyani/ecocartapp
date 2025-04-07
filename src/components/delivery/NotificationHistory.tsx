@@ -1,7 +1,7 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { notificationHistoryService } from '@/services/NotificationHistoryService';
 import { NotificationHistory as NotificationHistoryType } from '@/types/NotificationHistory';
 import { format } from 'date-fns';

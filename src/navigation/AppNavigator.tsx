@@ -4,83 +4,96 @@
  * Main navigation container that conditionally renders authenticated or unauthenticated routes.
  */
 
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { isFeatureEnabled } from '@/config/featureFlags';
 import { useTheme } from '@/hooks/useTheme';
-import ARContainerScannerScreen from '@/screens/ARContainerScannerScreen';
-import { HomeScreen } from '@/screens/HomeScreen';
-import { PaymentScreen } from '@/screens/PaymentScreen';
-import { ProductListScreen } from '@/screens/ProductListScreen';
-import { ProfileScreen } from '@/screens/ProfileScreen';
-import { WasteCollectionScreen } from '@/screens/WasteCollectionScreen';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import type { RootStackParamList } from './types';
 
-const Tab = createBottomTabNavigator<RootStackParamList>();
-const Stack = createNativeStackNavigator<RootStackParamList>();
+// Import screens
+import ARContainerScanScreen from '@/screens/ARContainerScanScreen';
 
-function TabNavigator() {
-  const theme = useTheme();
+// Import smart home navigator
+import SmartHomeNavigator from './SmartHomeNavigator';
 
+// Define screen components for demonstration 
+// (These would be replaced with actual screens in a complete app)
+const HomeScreen = () => <React.Fragment />;
+const RecycleScreen = () => <React.Fragment />;
+const ProfileScreen = () => <React.Fragment />;
+
+// Define navigation types
+type MainTabParamList = {
+  Home: undefined;
+  Recycle: undefined;
+  SmartHome: undefined;
+  Profile: undefined;
+};
+
+type RootStackParamList = {
+  MainTabs: undefined;
+  ARContainerScan: undefined;
+  SmartHomeStack: undefined;
+};
+
+// Create navigators
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// Tab navigator component
+function MainTabNavigator() {
+  const { theme, isDark } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.text.secondary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
           backgroundColor: theme.colors.background,
-          borderTopColor: theme.colors.text.secondary,
+          borderTopColor: theme.colors.border,
         },
+        headerStyle: {
+          backgroundColor: theme.colors.background,
+        },
+        headerTintColor: theme.colors.text,
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
         options={{
           tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="home" size={size} color={color} />
+            <MaterialCommunityIcons name="home" color={color} size={size} />
           ),
         }}
       />
-      <Tab.Screen
-        name="WasteCollection"
-        component={WasteCollectionScreen}
+      <Tab.Screen 
+        name="Recycle" 
+        component={RecycleScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="recycle" size={size} color={color} />
+            <MaterialCommunityIcons name="recycle" color={color} size={size} />
           ),
         }}
       />
-      {isFeatureEnabled('enableProductCatalog') && (
-        <Tab.Screen
-          name="ProductList"
-          component={ProductListScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <IconSymbol name="store" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
-      {isFeatureEnabled('enablePayments') && (
-        <Tab.Screen
-          name="Payments"
-          component={PaymentScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <IconSymbol name="credit-card" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
-      <Tab.Screen
-        name="Profile"
+      <Tab.Screen 
+        name="SmartHome" 
+        component={SmartHomeNavigator}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home-automation" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Profile" 
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <IconSymbol name="account" size={size} color={color} />
+            <MaterialCommunityIcons name="account" color={color} size={size} />
           ),
         }}
       />
@@ -88,19 +101,48 @@ function TabNavigator() {
   );
 }
 
-export function AppNavigator() {
+// Root navigator
+export default function AppNavigator() {
+  const { theme } = useTheme();
+  
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="MainTabs"
-        component={TabNavigator}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="ARContainerScanner"
-        component={ARContainerScannerScreen}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: theme.colors.background,
+          },
+          headerTintColor: theme.colors.text,
+          cardStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        <Stack.Screen 
+          name="MainTabs" 
+          component={MainTabNavigator} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="ARContainerScan" 
+          component={ARContainerScanScreen}
+          options={{ 
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
+
+// Example of how to navigate to the AR Scanner:
+/*
+  import { useNavigation } from '@react-navigation/native';
+
+  // Inside your component:
+  const navigation = useNavigation();
+  
+  // Navigate to AR Scanner
+  const openARScanner = () => {
+    navigation.navigate('ARContainerScan');
+  };
+*/

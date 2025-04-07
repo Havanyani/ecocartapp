@@ -1,5 +1,5 @@
+import { apiClient } from '@/services/apiClient';
 import { offlineStorageService } from './OfflineStorageService';
-import { apiClient } from './apiClient';
 
 export interface UserProfile {
   id: string;

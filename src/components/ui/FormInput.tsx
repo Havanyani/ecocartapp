@@ -1,6 +1,7 @@
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/theme';
+import { getSafeTheme } from '@/utils/webFallbacks';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { Text } from './Text';
 
 export interface FormInputProps extends TextInputProps {
   label: string;
@@ -9,31 +10,32 @@ export interface FormInputProps extends TextInputProps {
 }
 
 export function FormInput({ label, error, style, ...props }: FormInputProps) {
-  const { theme } = useTheme();
+  const themeResult = useTheme();
+  const theme = getSafeTheme(themeResult);
 
   return (
     <View style={styles.container}>
-      <ThemedText variant="body" style={styles.label}>{label}</ThemedText>
+      <Text variant="body" style={styles.label}>{label}</Text>
       <TextInput
         style={[
           styles.input,
           { 
-            backgroundColor: theme.colors.card,
-            borderColor: error ? theme.colors.error : theme.colors.border,
-            color: theme.colors.text.primary,
+            backgroundColor: theme.colors.card || '#ffffff',
+            borderColor: error ? theme.colors.error || '#ff0000' : theme.colors.border || '#dddddd',
+            color: theme.colors.text || '#000000',
           },
           style,
         ]}
-        placeholderTextColor={theme.colors.text.secondary}
+        placeholderTextColor={theme.colors.textSecondary || '#aaaaaa'}
         {...props}
       />
       {error && (
-        <ThemedText 
+        <Text 
           variant="body" 
-          style={[styles.error, { color: theme.colors.error }]}
+          style={[styles.error, { color: theme.colors.error || '#ff0000' }]}
         >
           {error}
-        </ThemedText>
+        </Text>
       )}
     </View>
   );

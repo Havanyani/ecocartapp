@@ -4,14 +4,20 @@
 
 import { Material, MaterialCondition, MaterialQuantity } from './Material';
 
-// Collection status type
-export type CollectionStatus = 
-  | 'pending'
-  | 'confirmed'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled'
-  | 'rescheduled';
+/**
+ * Collection status enum
+ */
+export enum CollectionStatus {
+  PENDING = 'pending',
+  SCHEDULED = 'scheduled',
+  EN_ROUTE = 'en_route',
+  ARRIVED = 'arrived',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  MISSED = 'missed',
+  RESCHEDULED = 'rescheduled'
+}
 
 // Status history item
 export interface StatusHistoryItem {

@@ -15,7 +15,7 @@ interface SettingItemProps {
 }
 
 export function SettingItem({ icon, label, value, href }: SettingItemProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <Link href={href} asChild>

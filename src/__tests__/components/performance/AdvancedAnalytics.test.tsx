@@ -1,6 +1,6 @@
 import { AdvancedAnalytics } from '@/components/performance/AdvancedAnalytics';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 

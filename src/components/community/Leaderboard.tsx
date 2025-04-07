@@ -1,11 +1,11 @@
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { useCommunity } from '@/hooks/useCommunity';
+import { useTheme } from '@/theme';
 import { Image } from 'expo-image';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { useCommunity } from '../../hooks/useCommunity';
-import { useTheme } from '../../hooks/useTheme';
-import { IconSymbol } from '../ui/IconSymbol';
-import { ThemedText } from '../ui/ThemedText';
-import { ThemedView } from '../ui/ThemedView';
 
 function LeaderboardItem({
   user,
@@ -22,7 +22,7 @@ function LeaderboardItem({
   };
   rank: number;
 }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const getRankColor = (rank: number) => {
     switch (rank) {
@@ -33,7 +33,7 @@ function LeaderboardItem({
       case 3:
         return '#CD7F32'; // Bronze
       default:
-        return theme.colors.text;
+        return theme.theme.colors.text;
     }
   };
 
@@ -58,7 +58,7 @@ function LeaderboardItem({
             contentFit="cover"
           />
         ) : (
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.avatar, { backgroundColor: theme.theme.colors.primary }]}>
             <ThemedText style={styles.avatarText}>
               {user.name[0].toUpperCase()}
             </ThemedText>
@@ -68,19 +68,19 @@ function LeaderboardItem({
           <ThemedText style={styles.userName}>{user.name}</ThemedText>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <IconSymbol name="star" size={16} color={theme.colors.primary} />
+              <IconSymbol name="star" size={16} color={theme.theme.colors.primary} />
               <ThemedText style={styles.statText}>
                 {user.stats.points}
               </ThemedText>
             </View>
             <View style={styles.stat}>
-              <IconSymbol name="collection" size={16} color={theme.colors.primary} />
+              <IconSymbol name="collection" size={16} color={theme.theme.colors.primary} />
               <ThemedText style={styles.statText}>
                 {user.stats.totalCollections}
               </ThemedText>
             </View>
             <View style={styles.stat}>
-              <IconSymbol name="weight" size={16} color={theme.colors.primary} />
+              <IconSymbol name="weight" size={16} color={theme.theme.colors.primary} />
               <ThemedText style={styles.statText}>
                 {user.stats.totalWeight}kg
               </ThemedText>

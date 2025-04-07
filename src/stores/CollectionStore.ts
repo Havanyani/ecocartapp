@@ -1,6 +1,7 @@
-import { makeAutoObservable, runInAction } from 'mobx';
 import { PlasticCollectionService } from '@/services/PlasticCollectionService';
-import { Collection, TimeSlot } from '@/types/Collection';
+import { Collection } from '@/types/Collection';
+import { TimeSlot } from '@/types/collections';
+import { makeAutoObservable, runInAction } from 'mobx';
 import { RootStore } from './RootStore';
 
 export class CollectionStore {

@@ -1,12 +1,12 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import MapView, { Marker, PROVIDER_GOOGLE } from '@/components/ui/MapViewAdapter';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useCollectionTracking } from '@/hooks/useCollectionTracking';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Collection } from '@/types/Collection';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface CollectionTrackerProps {
   collection: Collection;

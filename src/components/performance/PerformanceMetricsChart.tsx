@@ -1,195 +1,182 @@
-import React from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
-import { ChartSeries } from '@/types/PerformanceMonitoring';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+/**
+ * PerformanceMetricsChart.tsx
+ * 
+ * A chart component for displaying performance metrics.
+ * Used by the WebPerformanceDashboard.
+ */
+
 import { ThemedText } from '@/components/ui/ThemedText';
+import React from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
-interface PerformanceMetricsChartProps {
-  series: ChartSeries[];
-  timeframe: string;
-  unit: string;
-  title?: string;
-  subtitle?: string;
-  onPointPress?: (seriesId: string, point: { date: Date; value: number }) => void;
-}
-
-export function PerformanceMetricsChart({
-  series,
-  timeframe,
-  unit,
-  title = 'Performance Trends',
-  subtitle,
-  onPointPress,
-}: PerformanceMetricsChartProps) {
-  const screenWidth = Dimensions.get('window').width - 48;
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatValue = (value: number) => {
-    return value.toLocaleString('en-US', {
-      maximumFractionDigits: 1,
-    });
-  };
-
-  const calculateChange = (data: { date: Date; value: number }[]) => {
-    if (data.length < 2) return 0;
-    const first = data[0].value;
-    const last = data[data.length - 1].value;
-    return ((last - first) / first) * 100;
-  };
-
-  const chartData = {
-    labels: series[0].data.map(point => formatDate(point.date)),
-    datasets: series.map(s => ({
-      data: s.data.map(point => point.value),
-      color: () => s.color,
-      strokeWidth: 2,
-    })),
-  };
-
-  const legendItems: { id: string; label: string; value: number; change: number; color: string }[] = series.map(s => ({
-    id: s.id,
-    label: s.label,
-    value: s.data[s.data.length - 1].value,
-    change: calculateChange(s.data),
-    color: s.color,
+// Simple placeholder component when React Native Charts is not available
+export function PerformanceMetricsChart({ data }: { data: any }): JSX.Element {
+  // Format the data for display
+  const formattedData = data.labels.map((label: string, index: number) => ({
+    label,
+    value: data.datasets[0].data[index],
   }));
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>{title}</ThemedText>
-        {subtitle && (
-          <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
-        )}
-        <ThemedText style={styles.timeframe}>{timeframe}</ThemedText>
-      </View>
-
-      <LineChart
-        data={chartData}
-        width={screenWidth}
-        height={220}
-        chartConfig={{
-          backgroundColor: '#fff',
-          backgroundGradientFrom: '#fff',
-          backgroundGradientTo: '#fff',
-          decimalPlaces: 1,
-          color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
-          style: {
-            borderRadius: 16,
-          },
-        }}
-        bezier
-        style={styles.chart}
-        onDataPointClick={({ index, dataset }) => {
-          const seriesIndex = chartData.datasets.indexOf(dataset);
-          onPointPress?.(
-            series[seriesIndex].id,
-            series[seriesIndex].data[index]
-          );
-        }}
-      />
-
-      <View style={styles.legend}>
-        {legendItems.map(item => (
-          <View key={item.id} style={styles.legendItem}>
-            <View style={styles.legendHeader}>
-              <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-              <ThemedText style={styles.legendLabel}>{item.label}</ThemedText>
-              <View style={styles.changeIndicator}>
-                <IconSymbol
-                  name={item.change >= 0 ? 'trending-up' : 'trending-down'}
-                  size={16}
-                  color={item.change >= 0 ? '#2e7d32' : '#d32f2f'}
-                />
-                <ThemedText
+  if (Platform.OS === 'web') {
+    // Web implementation using DIVs for bar chart display
+    return (
+      <View style={styles.container}>
+        <View style={styles.chartContainer}>
+          {formattedData.map((item, index) => (
+            <View key={index} style={styles.barContainer}>
+              <ThemedText style={styles.label}>{item.label}</ThemedText>
+              <View style={styles.barWrapper}>
+                <View 
                   style={[
-                    styles.changeText,
-                    { color: item.change >= 0 ? '#2e7d32' : '#d32f2f' },
-                  ]}
-                >
-                  {item.change.toFixed(1)}%
+                    styles.bar, 
+                    { 
+                      width: `${Math.min(100, (item.value / 5000) * 100)}%`,
+                      backgroundColor: getColorForValue(item.value)
+                    }
+                  ]} 
+                />
+                <ThemedText style={styles.value}>
+                  {item.value < 1 ? item.value.toFixed(3) : 
+                   item.value < 100 ? item.value.toFixed(1) : 
+                   Math.round(item.value)}
                 </ThemedText>
               </View>
             </View>
-            <ThemedText style={styles.legendValue}>
-              {formatValue(item.value)} {unit}
-            </ThemedText>
+          ))}
+        </View>
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#4caf50' }]} />
+            <ThemedText style={styles.legendText}>Good</ThemedText>
           </View>
-        ))}
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#ff9800' }]} />
+            <ThemedText style={styles.legendText}>Needs Improvement</ThemedText>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#f44336' }]} />
+            <ThemedText style={styles.legendText}>Poor</ThemedText>
+          </View>
+        </View>
       </View>
+    );
+  }
+
+  // Mobile implementation (simplified)
+  return (
+    <View style={styles.container}>
+      <ThemedText style={styles.title}>Performance Metrics</ThemedText>
+      {formattedData.map((item, index) => (
+        <View key={index} style={styles.listItem}>
+          <ThemedText style={styles.listItemLabel}>{item.label}</ThemedText>
+          <ThemedText style={[styles.listItemValue, { color: getColorForValue(item.value) }]}>
+            {item.value < 1 ? item.value.toFixed(3) : 
+             item.value < 100 ? item.value.toFixed(1) : 
+             Math.round(item.value)}
+          </ThemedText>
+        </View>
+      ))}
     </View>
   );
 }
 
+// Helper function to determine color based on value
+const getColorForValue = (value: number): string => {
+  // Define the thresholds for different metrics
+  const isLCP = value > 1000; // Largest Contentful Paint is in ms
+  const isFID = value > 100 && value < 1000; // First Input Delay is in ms (usually < 1000)
+  const isCLS = value < 1; // Cumulative Layout Shift is a ratio (always < 1)
+
+  if (isLCP) {
+    return value < 2500 ? '#4caf50' : value < 4000 ? '#ff9800' : '#f44336';
+  } else if (isFID) {
+    return value < 100 ? '#4caf50' : value < 300 ? '#ff9800' : '#f44336';
+  } else if (isCLS) {
+    return value < 0.1 ? '#4caf50' : value < 0.25 ? '#ff9800' : '#f44336';
+  }
+
+  // Default behavior for other metrics
+  return value < 50 ? '#4caf50' : value < 150 ? '#ff9800' : '#f44336';
+};
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 16,
-  },
-  header: {
-    marginBottom: 16,
+    borderRadius: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+  chartContainer: {
+    marginTop: 16,
   },
-  timeframe: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+  barContainer: {
+    marginBottom: 12,
   },
-  chart: {
-    borderRadius: 8,
+  label: {
+    fontSize: 12,
+    color: '#757575',
+    marginBottom: 4,
   },
-  legend: {
-    gap: 12,
-  },
-  legendItem: {
-    padding: 12,
+  barWrapper: {
+    height: 24,
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-  },
-  legendHeader: {
+    borderRadius: 4,
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  bar: {
+    height: '100%',
+    backgroundColor: '#4caf50',
+    borderRadius: 4,
+  },
+  value: {
+    position: 'absolute',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#212121',
+    left: 8,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+    flexWrap: 'wrap',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    marginBottom: 8,
   },
   legendColor: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 8,
+    marginRight: 4,
   },
-  legendLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  changeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  changeText: {
+  legendText: {
     fontSize: 12,
-    fontWeight: '600',
+    color: '#757575',
   },
-  legendValue: {
-    fontSize: 16,
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  listItemLabel: {
+    fontSize: 14,
+  },
+  listItemValue: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#2e7d32',
   },
-}); 
+});
+
+export default PerformanceMetricsChart; 

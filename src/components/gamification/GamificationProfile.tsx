@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Achievement, Badge, GamificationProfile as GamificationProfileType } from '@/types/gamification';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -18,7 +18,7 @@ export function GamificationProfile({
   onBadgePress,
   onViewAllAchievements
 }: GamificationProfileProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <View style={styles.container}>

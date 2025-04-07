@@ -16,6 +16,7 @@ export interface AuthState {
   isBiometricEnabled: boolean;
   isTwoFactorEnabled: boolean;
   twoFactorSecret: string | null;
+  isAuthenticated: boolean;
 }
 
 export interface LoginFormData {

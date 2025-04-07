@@ -1,31 +1,22 @@
 /**
- * NotificationPreferences Types
+ * NotificationPreferences.ts
  * 
- * Type definitions for notification preferences
+ * Type definitions for notification preferences in the app.
  */
 
 /**
- * The supported notification categories
+ * Enum for notification categories
  */
 export enum NotificationCategory {
   COLLECTION = 'collection',
   DELIVERY = 'delivery',
-  SYSTEM = 'system',
   REWARDS = 'rewards',
-  COMMUNITY = 'community'
+  COMMUNITY = 'community',
+  SYSTEM = 'system'
 }
 
 /**
- * The priority levels for notifications
- */
-export enum NotificationPriority {
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
-}
-
-/**
- * The channels through which notifications can be delivered
+ * Enum for notification channels
  */
 export enum NotificationChannel {
   PUSH = 'push',
@@ -35,34 +26,26 @@ export enum NotificationChannel {
 }
 
 /**
- * Category-specific notification preferences
+ * Interface for category-specific preferences
  */
 export interface CategoryPreferences {
   enabled: boolean;
   channels: NotificationChannel[];
-  priority: NotificationPriority;
+  importance: 'high' | 'medium' | 'low';
 }
 
 /**
- * Notification schedule preferences
+ * Interface for quiet hours schedule
  */
-export interface SchedulePreferences {
+export interface QuietHoursSchedule {
   quietHoursEnabled: boolean;
-  quietHoursStart: string; // Format: "HH:MM" in 24-hour format
-  quietHoursEnd: string; // Format: "HH:MM" in 24-hour format
-  daysEnabled: {
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-    sunday: boolean;
-  };
+  quietHoursStart: string; // Format: "HH:MM"
+  quietHoursEnd: string; // Format: "HH:MM"
+  activeDays: number[]; // 0-6, where 0 is Sunday
 }
 
 /**
- * Complete notification preferences object
+ * Interface for notification preferences
  */
 export interface NotificationPreferences {
   // Global settings
@@ -71,25 +54,82 @@ export interface NotificationPreferences {
   emailNotificationsEnabled: boolean;
   smsNotificationsEnabled: boolean;
   
-  // Per-category settings
-  collection: CategoryPreferences;
-  delivery: CategoryPreferences;
-  system: CategoryPreferences;
-  rewards: CategoryPreferences;
-  community: CategoryPreferences;
+  // Quiet hours schedule
+  schedule: QuietHoursSchedule;
   
-  // Schedule settings
-  schedule: SchedulePreferences;
+  // Category settings
+  [NotificationCategory.COLLECTION]: CategoryPreferences;
+  [NotificationCategory.DELIVERY]: CategoryPreferences;
+  [NotificationCategory.REWARDS]: CategoryPreferences;
+  [NotificationCategory.COMMUNITY]: CategoryPreferences;
+  [NotificationCategory.SYSTEM]: CategoryPreferences;
   
-  // Feature-specific toggles
+  // Feature-specific notification settings
   collectionStatusChanges: boolean;
-  personnelLocationUpdates: boolean;
-  deliveryStatusUpdates: boolean;
-  locationUpdates: boolean;
-  routeChanges: boolean;
-  collectionUpdates: boolean;
   achievementNotifications: boolean;
   questNotifications: boolean;
   creditUpdates: boolean;
   communityEvents: boolean;
-} 
+  
+  // Additional settings
+  vibrationEnabled: boolean;
+  soundEnabled: boolean;
+  lastUpdated: number; // Unix timestamp
+}
+
+/**
+ * Default notification preferences
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  allNotificationsEnabled: true,
+  pushNotificationsEnabled: true,
+  emailNotificationsEnabled: true,
+  smsNotificationsEnabled: false,
+  
+  schedule: {
+    quietHoursEnabled: false,
+    quietHoursStart: '22:00',
+    quietHoursEnd: '08:00',
+    activeDays: [0, 1, 2, 3, 4, 5, 6] // All days
+  },
+  
+  [NotificationCategory.COLLECTION]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    importance: 'high'
+  },
+  
+  [NotificationCategory.DELIVERY]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    importance: 'high'
+  },
+  
+  [NotificationCategory.REWARDS]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    importance: 'medium'
+  },
+  
+  [NotificationCategory.COMMUNITY]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    importance: 'medium'
+  },
+  
+  [NotificationCategory.SYSTEM]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    importance: 'high'
+  },
+  
+  collectionStatusChanges: true,
+  achievementNotifications: true,
+  questNotifications: true,
+  creditUpdates: true,
+  communityEvents: true,
+  
+  vibrationEnabled: true,
+  soundEnabled: true,
+  lastUpdated: Date.now()
+}; 

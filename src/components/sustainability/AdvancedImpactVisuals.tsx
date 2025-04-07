@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { ContributionGraph, PieChart, ProgressChart } from 'react-native-chart-kit';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { IconSymbol, ThemedText, ThemedView } from '@/components/ui';
 import { HapticTab } from '@/components/ui/HapticTab';
 
@@ -36,7 +36,7 @@ export function AdvancedImpactVisuals({
   onTimeframeChange,
   testID
 }: AdvancedImpactVisualsProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [selectedView, setSelectedView] = useState<'personal' | 'community'>('personal');
   const screenWidth = Dimensions.get('window').width;
 

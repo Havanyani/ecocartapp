@@ -1,5 +1,5 @@
 import useNetworkStatus from '@/hooks/useNetworkStatus';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import syncService, { SyncStats } from '@/services/SyncService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -14,7 +14,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onPress }) =
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const rotateAnim = useState(new Animated.Value(0))[0];
   const heightAnim = useState(new Animated.Value(0))[0];
 

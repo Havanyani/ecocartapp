@@ -1,116 +1,83 @@
-/**
- * app/(tabs)/_layout.tsx
- * 
- * Tab layout for the EcoCart app.
- * This component manages the tab-based navigation in the app.
- */
-
-import { useTheme } from '@/hooks/useTheme';
-import {
-    FontAwesome5,
-    Ionicons,
-    MaterialCommunityIcons,
-} from '@expo/vector-icons';
-import { Tabs } from 'expo-router/tabs';
-import React from 'react';
-import { Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { ComponentProps } from 'react';
+import { useTheme } from '../../src/contexts/ThemeContext';
 
 interface TabBarIconProps {
   color: string;
   size: number;
 }
 
-export default function TabsLayout() {
+// Fix type issues by explicitly declaring Tabs with Screen property
+type TabsComponentType = typeof Tabs & {
+  Screen: React.ComponentType<ComponentProps<typeof Tabs.Screen>>;
+};
+
+// Cast Tabs to the correct type
+const TypedTabs = Tabs as TabsComponentType;
+
+export default function TabLayout() {
   const { theme } = useTheme();
 
-  const screenOptions = {
-    tabBarShowLabel: true,
-    headerShown: false,
-    tabBarActiveTintColor: theme.colors.primary,
-    tabBarInactiveTintColor: theme.colors.text.primary,
-    tabBarStyle: {
-      height: Platform.OS === 'ios' ? 88 : 60,
-      paddingTop: 6,
-      paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(0, 0, 0, 0.1)', // Use a standard border color instead of theme.colors.border
-    },
-  };
-
   return (
-    <Tabs screenOptions={screenOptions}>
-      <Tabs.Screen
+    <TypedTabs
+      screenOptions={{
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.text,
+      }}
+    >
+      <TypedTabs.Screen
         name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="home-outline" color={color} size={size} />
+            <MaterialIcons name="home" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="tasks"
-        options={{
-          title: 'Tasks',
-          tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="checkbox-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="collections"
-        options={{
-          title: 'Collections',
-          tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="calendar-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="grocery"
-        options={{
-          title: 'Grocery',
-          tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="cart-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
+      <TypedTabs.Screen
         name="materials"
         options={{
           title: 'Materials',
           tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <FontAwesome5 name="recycle" color={color} size={size} />
+            <MaterialIcons name="recycling" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
+      <TypedTabs.Screen
+        name="collections"
+        options={{
+          title: 'Collections',
+          tabBarIcon: ({ color, size }: TabBarIconProps) => (
+            <MaterialIcons name="collections" size={size} color={color} />
+          ),
+        }}
+      />
+      <TypedTabs.Screen
         name="community"
         options={{
           title: 'Community',
           tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="people-outline" color={color} size={size} />
+            <MaterialIcons name="people" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="rewards"
-        options={{
-          title: 'Rewards',
-          tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <MaterialCommunityIcons name="trophy-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
+      <TypedTabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }: TabBarIconProps) => (
-            <Ionicons name="person-outline" color={color} size={size} />
+            <MaterialIcons name="person" size={size} color={color} />
           ),
         }}
       />
-    </Tabs>
+    </TypedTabs>
   );
-}
+} 

@@ -3,11 +3,12 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      ['react-native-reanimated/plugin'],
+      'react-native-reanimated/plugin',
+      ['babel-plugin-react-native-web', { commonjs: true }],
       [
         'module-resolver',
         {
-          root: ['.'],
+          extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json', '.web.js', '.web.tsx'],
           alias: {
             '@': './src',
             '@components': './src/components',
@@ -18,17 +19,16 @@ module.exports = function (api) {
             '@contexts': './src/contexts',
             '@types': './src/types'
           },
-          extensions: [
-            '.ios.ts',
-            '.android.ts',
-            '.ts',
-            '.ios.tsx',
-            '.android.tsx',
-            '.tsx',
-            '.jsx',
-            '.js',
-            '.json',
-          ],
+          platforms: {
+            web: {
+              alias: {
+                'react-native-maps': './src/mocks/react-native-maps.js',
+                'victory-native': './src/components/ui/Victory.web.tsx',
+                '@shopify/react-native-skia': './src/mocks/react-native-skia.js',
+                'react-native-svg': './src/mocks/react-native-svg.js',
+              },
+            },
+          },
         },
       ],
     ]

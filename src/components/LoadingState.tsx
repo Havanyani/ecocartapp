@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useEffect } from 'react';
 import {
     Animated,
@@ -28,7 +28,7 @@ export function LoadingState({
   style,
   text
 }: LoadingStateProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const shimmerValue = new Animated.Value(0);
   
   // Start the shimmer animation loop
@@ -53,8 +53,8 @@ export function LoadingState({
   const shimmerGradient = shimmerValue.interpolate({
     inputRange: [0, 1],
     outputRange: [
-      theme.colors.background + '50', 
-      theme.colors.background + 'BB'
+      theme.theme.colors.background + '50', 
+      theme.theme.colors.background + 'BB'
     ],
   });
   
@@ -68,20 +68,20 @@ export function LoadingState({
                 <View 
                   style={[
                     styles.listAvatar, 
-                    { backgroundColor: theme.colors.background + '80' }
+                    { backgroundColor: theme.theme.colors.background + '80' }
                   ]} 
                 />
                 <View style={styles.listContent}>
                   <View 
                     style={[
                       styles.listTitle, 
-                      { backgroundColor: theme.colors.background + '80' }
+                      { backgroundColor: theme.theme.colors.background + '80' }
                     ]} 
                   />
                   <View 
                     style={[
                       styles.listSubtitle, 
-                      { backgroundColor: theme.colors.background + '80' }
+                      { backgroundColor: theme.theme.colors.background + '80' }
                     ]} 
                   />
                 </View>
@@ -99,7 +99,7 @@ export function LoadingState({
                 style={[
                   styles.textLine,
                   { 
-                    backgroundColor: theme.colors.background + '80',
+                    backgroundColor: theme.theme.colors.background + '80',
                     width: index === lines - 1 && lines > 1 ? '70%' : '100%',
                   }
                 ]} 
@@ -114,7 +114,7 @@ export function LoadingState({
             style={[
               styles.image, 
               { 
-                backgroundColor: theme.colors.background + '80',
+                backgroundColor: theme.theme.colors.background + '80',
                 width: width || '100%',
                 height: height || 200,
                 borderRadius: rounded ? (typeof height === 'number' ? height / 2 : 100) : 8
@@ -129,20 +129,20 @@ export function LoadingState({
             <View 
               style={[
                 styles.profileAvatar, 
-                { backgroundColor: theme.colors.background + '80' }
+                { backgroundColor: theme.theme.colors.background + '80' }
               ]} 
             />
             <View style={styles.profileContent}>
               <View 
                 style={[
                   styles.profileName, 
-                  { backgroundColor: theme.colors.background + '80' }
+                  { backgroundColor: theme.theme.colors.background + '80' }
                 ]} 
               />
               <View 
                 style={[
                   styles.profileDetails, 
-                  { backgroundColor: theme.colors.background + '80' }
+                  { backgroundColor: theme.theme.colors.background + '80' }
                 ]} 
               />
             </View>
@@ -156,7 +156,7 @@ export function LoadingState({
             style={[
               styles.card, 
               { 
-                backgroundColor: theme.colors.background + '50',
+                backgroundColor: theme.theme.colors.background + '50',
                 width: width || '100%',
                 height: height || 150,
                 borderRadius: rounded ? 100 : 8
@@ -180,7 +180,7 @@ export function LoadingState({
         ]}
       />
       {text && (
-        <Text style={[styles.loadingText, { color: theme.colors.text + '80' }]}>
+        <Text style={[styles.loadingText, { color: theme.theme.colors.text + '80' }]}>
           {text}
         </Text>
       )}

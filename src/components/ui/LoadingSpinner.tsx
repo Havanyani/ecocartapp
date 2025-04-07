@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -7,11 +7,11 @@ interface LoadingSpinnerProps {
 }
 
 export function LoadingSpinner({ testID }: LoadingSpinnerProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <View style={styles.container} testID={testID}>
-      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <ActivityIndicator size="large" color={theme.theme.colors.primary} />
     </View>
   );
 }

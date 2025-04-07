@@ -27,7 +27,7 @@ export function isTheme(value: unknown): value is Theme {
     theme.spacing !== undefined &&
     theme.typography !== undefined &&
     theme.radii !== undefined &&
-    typeof theme.isDark === 'boolean' &&
+    typeof theme.dark === 'boolean' &&
     isThemeColors(theme.colors)
   );
 }

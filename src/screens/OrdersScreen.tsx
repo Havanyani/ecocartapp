@@ -4,18 +4,18 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useOrders } from '@/hooks/useOrders';
-import { useTheme } from '@/hooks/useTheme';
 import { RootStackParamList } from '@/navigation/types';
+import { useTheme } from '@/theme';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -63,7 +63,7 @@ type OrdersScreenProps = {
 };
 
 export function OrdersScreen({ navigation }: OrdersScreenProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { orders, isLoading, error, fetchOrders } = useOrders();
   const [selectedTab, setSelectedTab] = useState<OrderTab>('in_progress');
   const [refreshing, setRefreshing] = useState(false);
@@ -155,7 +155,7 @@ export function OrdersScreen({ navigation }: OrdersScreenProps): JSX.Element {
               {order.deliveryPersonnel.name}
             </ThemedText>
             <View style={styles.rating}>
-              <IconSymbol name="star" size={16} color={theme.colors.primary} />
+              <IconSymbol name="star" size={16} color={theme.theme.colors.primary} />
               <ThemedText>{order.deliveryPersonnel.rating}</ThemedText>
             </View>
           </View>
@@ -164,7 +164,7 @@ export function OrdersScreen({ navigation }: OrdersScreenProps): JSX.Element {
             style={styles.callButton}
             testID={`call-button-${order.id}`}
           >
-            <IconSymbol name="phone" size={20} color={theme.colors.primary} />
+            <IconSymbol name="phone" size={20} color={theme.theme.colors.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -175,7 +175,7 @@ export function OrdersScreen({ navigation }: OrdersScreenProps): JSX.Element {
         testID={`tracking-${order.id}`}
       />
     </ThemedView>
-  ), [handleCall, theme.colors.primary]);
+  ), [handleCall, theme.theme.colors.primary]);
 
   return (
     <SafeAreaView style={styles.container}>

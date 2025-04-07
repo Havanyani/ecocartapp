@@ -1,0 +1,550 @@
+name: EcoCart CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, release/*]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+jobs:
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: TypeScript check
+        id: typescript
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: ESLint
+        id: eslint
+        run: npm run lint -- --format json --output-file eslint-report.json
+        continue-on-error: true
+
+      - name: Check for duplicate dependencies
+        run: npx find-duplicate-dependencies
+
+      - name: Check security vulnerabilities
+        run: npm audit --production
+
+      - name: Run unit tests
+        id: tests
+        run: npm test -- --coverage --json --outputFile=jest-report.json
+        continue-on-error: true
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+
+      - name: Test Summary
+        if: always()
+        env:
+          TYPESCRIPT_FAILED: ${{ steps.typescript.outcome == 'failure' }}
+          ESLINT_FAILED: ${{ steps.eslint.outcome == 'failure' }}
+          TESTS_FAILED: ${{ steps.tests.outcome == 'failure' }}
+        run: |
+          echo "## Code Validation Results" > $GITHUB_STEP_SUMMARY
+          if [ "$TYPESCRIPT_FAILED" == "true" ]; then
+            echo "❌ TypeScript check failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ TypeScript check passed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "$ESLINT_FAILED" == "true" ]; then
+            echo "❌ ESLint check failed" >> $GITHUB_STEP_SUMMARY
+            echo "See eslint-report.json for details" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ ESLint check passed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "$TESTS_FAILED" == "true" ]; then
+            echo "❌ Unit tests failed" >> $GITHUB_STEP_SUMMARY
+            echo "See jest-report.json for details" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Unit tests passed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "$TYPESCRIPT_FAILED" == "true" ] || [ "$ESLINT_FAILED" == "true" ] || [ "$TESTS_FAILED" == "true" ]; then
+            exit 1
+          fi
+
+  dependency-review:
+    name: Review Dependencies
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: high
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Code Quality Analysis
+        run: |
+          npx sonarqube-scanner \
+            -Dsonar.projectKey=ecocart-mobile \
+            -Dsonar.sources=src \
+            -Dsonar.tests=src/__tests__ \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.testExecutionReportPaths=test-report.xml \
+            -Dsonar.exclusions=**/*.test.tsx,**/*.test.ts,**/node_modules/**,**/coverage/**
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+        continue-on-error: true
+
+      - name: Run bundle size analysis
+        run: node scripts/bundle-analyzer.js --ci
+        continue-on-error: true
+
+  development-build:
+    name: Development Build
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Cache Expo
+        uses: actions/cache@v3
+        with:
+          path: ~/.expo
+          key: expo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            expo-${{ runner.os }}-
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Verify EAS configuration
+        run: node scripts/ci-local-check.js --eas-only
+
+      - name: Create Expo development build
+        id: eas-build
+        run: npx eas build --platform all --profile development --non-interactive
+        continue-on-error: true
+
+      - name: Development Build Summary
+        if: always()
+        env:
+          BUILD_FAILED: ${{ steps.eas-build.outcome == 'failure' }}
+        run: |
+          echo "## Development Build Results" > $GITHUB_STEP_SUMMARY
+          if [ "$BUILD_FAILED" == "true" ]; then
+            echo "❌ Development build failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Development build succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "Check the EAS console for download links." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  preview-build:
+    name: Preview Build
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Cache Expo
+        uses: actions/cache@v3
+        with:
+          path: ~/.expo
+          key: expo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            expo-${{ runner.os }}-
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Create PR Preview
+        id: eas-preview
+        run: npx eas build --platform android --profile preview --non-interactive
+        continue-on-error: true
+        
+      - name: Find Play Store URL
+        if: steps.eas-preview.outcome == 'success'
+        run: |
+          BUILD_URL=$(npx eas build:list --json --limit 1 --platform android --status finished | jq -r '.[0].artifacts.buildUrl')
+          echo "The latest Android build can be downloaded from: $BUILD_URL"
+          echo "BUILD_URL=$BUILD_URL" >> $GITHUB_ENV
+          
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.eas-preview.outcome == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const buildUrl = process.env.BUILD_URL;
+            const buildResultIcon = buildUrl ? '✅' : '❌';
+            let message = `## 📱 Preview Build Results\n\n${buildResultIcon} `;
+            
+            if (buildUrl) {
+              message += `Preview build is ready for testing!\n\nDownload the latest Android build [here](${buildUrl})`;
+            } else {
+              message += `Preview build failed. Check the logs for details.`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+
+  publish-update:
+    name: Publish OTA Update
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Cache Expo
+        uses: actions/cache@v3
+        with:
+          path: ~/.expo
+          key: expo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            expo-${{ runner.os }}-
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Set update branch
+        id: update_branch
+        run: |
+          if [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "BRANCH=production" >> $GITHUB_OUTPUT
+          else
+            echo "BRANCH=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get commit info
+        id: commit_info
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "message=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+          echo "author=${COMMIT_AUTHOR}" >> $GITHUB_OUTPUT
+          echo "hash=${COMMIT_HASH}" >> $GITHUB_OUTPUT
+
+      - name: Publish update
+        id: publish_update
+        run: |
+          UPDATE_MESSAGE="Update from ${GITHUB_REPOSITORY}@${GITHUB_REF_NAME} (${GITHUB_SHA:0:7}) - ${COMMIT_MSG}"
+          npx eas update --branch ${{ steps.update_branch.outputs.BRANCH }} --message "$UPDATE_MESSAGE"
+        env:
+          COMMIT_MSG: ${{ steps.commit_info.outputs.message }}
+        continue-on-error: true
+
+      - name: OTA Update Summary
+        if: always()
+        env:
+          UPDATE_FAILED: ${{ steps.publish_update.outcome == 'failure' }}
+          BRANCH: ${{ steps.update_branch.outputs.BRANCH }}
+        run: |
+          echo "## OTA Update Results" > $GITHUB_STEP_SUMMARY
+          if [ "$UPDATE_FAILED" == "true" ]; then
+            echo "❌ OTA update to $BRANCH failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ OTA update to $BRANCH succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "Users with the app installed will receive this update automatically." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  production-build:
+    name: Production Build
+    needs: validate
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: |
+            **/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Update app version
+        run: npx json -I -f app.json -e "this.expo.version='${{ steps.get_version.outputs.VERSION }}'"
+
+      - name: Generate app icons
+        run: node scripts/generate-app-icons.js
+
+      - name: Cache Expo
+        uses: actions/cache@v3
+        with:
+          path: ~/.expo
+          key: expo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            expo-${{ runner.os }}-
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Verify EAS configuration
+        run: node scripts/ci-local-check.js --eas-only
+
+      - name: Build for iOS
+        id: ios_build
+        run: npx eas build --platform ios --profile production --non-interactive --auto-submit
+        continue-on-error: true
+
+      - name: Build for Android
+        id: android_build
+        run: npx eas build --platform android --profile production --non-interactive --auto-submit
+        continue-on-error: true
+
+      - name: Production Build Summary
+        if: always()
+        env:
+          IOS_BUILD_FAILED: ${{ steps.ios_build.outcome == 'failure' }}
+          ANDROID_BUILD_FAILED: ${{ steps.android_build.outcome == 'failure' }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          echo "## Production Build Results for v$VERSION" > $GITHUB_STEP_SUMMARY
+          if [ "$IOS_BUILD_FAILED" == "true" ]; then
+            echo "❌ iOS production build failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ iOS production build succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "iOS build has been submitted to App Store Connect." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "$ANDROID_BUILD_FAILED" == "true" ]; then
+            echo "❌ Android production build failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Android production build succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "Android build has been submitted to Google Play Console." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: production-build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v4.0.1
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+          base-ref: 'v${{ steps.get_version.outputs.VERSION }}^'
+          head-ref: 'v${{ steps.get_version.outputs.VERSION }}'
+
+      - name: Get release notes
+        id: release_notes
+        run: |
+          if [ -f "app-store-assets/metadata/release-notes.md" ]; then
+            NOTES=$(cat app-store-assets/metadata/release-notes.md)
+            NOTES="${NOTES//'%'/'%25'}"
+            NOTES="${NOTES//$'\n'/'%0A'}"
+            NOTES="${NOTES//$'\r'/'%0D'}"
+            echo "NOTES=$NOTES" >> $GITHUB_OUTPUT
+          else
+            echo "NOTES=Release version ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Version ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Release Notes
+            ${{ steps.release_notes.outputs.NOTES }}
+            
+            ## Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Downloads
+            App Store: [Coming Soon]
+            Google Play: [Coming Soon]
+            
+            ## Contributors
+            Thanks to all who contributed to this release!
+          draft: false
+          prerelease: false
+
+  cleanup:
+    name: Pipeline Cleanup
+    needs: [validate, dependency-review, code-quality, development-build, preview-build, publish-update, production-build, create-release]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pipeline Summary
+        run: |
+          echo "## EcoCart CI/CD Pipeline Complete" > $GITHUB_STEP_SUMMARY
+          echo "Pipeline for $GITHUB_REPOSITORY@$GITHUB_REF_NAME has completed." >> $GITHUB_STEP_SUMMARY
+          echo "Timestamp: $(date)" >> $GITHUB_STEP_SUMMARY 

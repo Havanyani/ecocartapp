@@ -1,8 +1,8 @@
 /**
  * ConflictResolution.ts
  * 
- * Service for handling data conflicts that occur during synchronization.
- * Provides strategies for resolving conflicts between local and remote data.
+ * Service for resolving conflicts between local and remote data
+ * when synchronizing offline operations with the server.
  */
 
 // Conflict types
@@ -14,21 +14,19 @@ export enum ConflictType {
   /** Remote data was deleted but local was modified */
   REMOTE_DELETED_LOCAL_MODIFIED = 'remote_deleted_local_modified',
   /** Both local and remote were deleted */
-  BOTH_DELETED = 'both_deleted'
+  BOTH_DELETED = 'both_deleted',
+  /** Created in both places independently */
+  CONCURRENT_CREATION = 'concurrent_creation'
 }
 
-// Resolution strategies
+// Resolution strategies for conflict handling
 export enum ResolutionStrategy {
-  /** Always use local data */
-  LOCAL_WINS = 'local_wins',
-  /** Always use remote data */
-  REMOTE_WINS = 'remote_wins',
-  /** Use the most recently modified data */
-  LATEST_WINS = 'latest_wins',
-  /** Merge the data */
-  MERGE = 'merge',
-  /** Ask the user to resolve the conflict */
-  MANUAL = 'manual'
+  LOCAL_WINS = 'local_wins',      // Always choose local data
+  REMOTE_WINS = 'remote_wins',    // Always choose remote data
+  LATEST_WINS = 'latest_wins',    // Choose the most recently updated version
+  MERGE = 'merge',                // Merge both versions using registered merge function
+  SMART_MERGE = 'smart_merge',    // Intelligently merge based on field-level changes
+  MANUAL = 'manual',              // Require manual resolution (not handled automatically)
 }
 
 // Conflict data
@@ -57,233 +55,266 @@ export interface ResolutionResult<T> {
   strategyUsed: ResolutionStrategy;
 }
 
-// Custom merge function type
-export type MergeFunction<T> = (local: T, remote: T) => T;
-
-// Manual resolution function type
-export type ManualResolutionFunction<T> = (
-  conflict: ConflictData<T>
-) => Promise<ResolutionResult<T>>;
+// Map of entity types to merge functions
+const mergeFunctions = new Map<string, (local: any, remote: any) => any>();
 
 /**
- * Conflict resolution service
+ * ConflictResolution service for handling data conflicts
  */
 export class ConflictResolution {
-  // Default strategy
-  private static defaultStrategy: ResolutionStrategy = ResolutionStrategy.LATEST_WINS;
-  
-  // Strategy map for different conflict types
-  private static strategyMap: Record<ConflictType, ResolutionStrategy> = {
-    [ConflictType.BOTH_MODIFIED]: ResolutionStrategy.LATEST_WINS,
-    [ConflictType.LOCAL_DELETED_REMOTE_MODIFIED]: ResolutionStrategy.REMOTE_WINS,
-    [ConflictType.REMOTE_DELETED_LOCAL_MODIFIED]: ResolutionStrategy.LOCAL_WINS,
-    [ConflictType.BOTH_DELETED]: ResolutionStrategy.REMOTE_WINS
-  };
-  
-  // Custom merge functions
-  private static mergeFunctions = new Map<string, MergeFunction<any>>();
-  
-  // Manual resolution function
-  private static manualResolutionFn: ManualResolutionFunction<any> | null = null;
-
   /**
-   * Set the default resolution strategy
-   * @param strategy The strategy to use by default
-   */
-  public static setDefaultStrategy(strategy: ResolutionStrategy): void {
-    this.defaultStrategy = strategy;
-  }
-
-  /**
-   * Set the strategy for a specific conflict type
-   * @param conflictType The conflict type
-   * @param strategy The strategy to use
-   */
-  public static setStrategyForConflictType(
-    conflictType: ConflictType,
-    strategy: ResolutionStrategy
-  ): void {
-    this.strategyMap[conflictType] = strategy;
-  }
-
-  /**
-   * Register a custom merge function for a specific data type
-   * @param entityType The entity type (e.g., 'collection', 'material')
-   * @param mergeFn The function to merge local and remote data
+   * Register a merge function for a specific entity type
    */
   public static registerMergeFunction<T>(
     entityType: string,
-    mergeFn: MergeFunction<T>
+    mergeFn: (local: T, remote: T) => T
   ): void {
-    this.mergeFunctions.set(entityType, mergeFn);
+    mergeFunctions.set(entityType, mergeFn);
   }
 
   /**
-   * Set the manual resolution function
-   * @param resolutionFn The function to call for manual conflict resolution
+   * Resolve conflict between local and remote data
    */
-  public static setManualResolutionFunction<T>(
-    resolutionFn: ManualResolutionFunction<T>
-  ): void {
-    this.manualResolutionFn = resolutionFn;
-  }
-
-  /**
-   * Resolve a data conflict
-   * @param conflict The conflict data
-   * @param entityType Optional entity type for custom merge functions
-   * @param strategy Optional strategy to override the default
-   */
-  public static async resolveConflict<T>(
-    conflict: ConflictData<T>,
-    entityType?: string,
-    strategy?: ResolutionStrategy
-  ): Promise<ResolutionResult<T>> {
-    // Determine which strategy to use
-    const resolveStrategy = strategy ||
-      this.strategyMap[conflict.type] ||
-      this.defaultStrategy;
+  public static resolveConflict<T>(
+    entityType: string,
+    localData: T,
+    remoteData: T,
+    strategy: ResolutionStrategy = ResolutionStrategy.REMOTE_WINS
+  ): T {
+    // Early return for null data cases
+    if (localData === null && remoteData === null) {
+      return null as T;
+    }
     
-    switch (resolveStrategy) {
+    if (localData === null) {
+      return remoteData;
+    }
+    
+    if (remoteData === null) {
+      return localData;
+    }
+
+    switch (strategy) {
       case ResolutionStrategy.LOCAL_WINS:
-        return this.resolveLocalWins(conflict);
-      
+        return localData;
+        
       case ResolutionStrategy.REMOTE_WINS:
-        return this.resolveRemoteWins(conflict);
-      
+        return remoteData;
+        
       case ResolutionStrategy.LATEST_WINS:
-        return this.resolveLatestWins(conflict);
-      
+        return this.resolveByTimestamp(localData, remoteData);
+        
       case ResolutionStrategy.MERGE:
-        return this.resolveMerge(conflict, entityType || 'default');
-      
-      case ResolutionStrategy.MANUAL:
-        return this.resolveManual(conflict);
-      
+        return this.mergeData(entityType, localData, remoteData);
+        
+      case ResolutionStrategy.SMART_MERGE:
+        return this.smartMergeData(entityType, localData, remoteData);
+        
       default:
-        // Default to latest wins if no strategy matched
-        return this.resolveLatestWins(conflict);
+        // Default to remote wins
+        return remoteData;
     }
   }
 
   /**
-   * Resolve conflict by using local data
+   * Resolve conflict based on timestamps
    */
-  private static resolveLocalWins<T>(
-    conflict: ConflictData<T>
-  ): ResolutionResult<T> {
-    // If local is deleted, delete the item
-    if (conflict.localData === null) {
-      return {
-        resolvedData: null,
-        shouldDelete: true,
-        strategyUsed: ResolutionStrategy.LOCAL_WINS
-      };
-    }
+  private static resolveByTimestamp<T>(localData: T, remoteData: T): T {
+    // Extract timestamps if available
+    const localTimestamp = (localData as any)?.updatedAt || (localData as any)?.timestamp || 0;
+    const remoteTimestamp = (remoteData as any)?.updatedAt || (remoteData as any)?.timestamp || 0;
     
-    // Otherwise use local data
-    return {
-      resolvedData: conflict.localData,
-      shouldDelete: false,
-      strategyUsed: ResolutionStrategy.LOCAL_WINS
-    };
+    return localTimestamp > remoteTimestamp ? localData : remoteData;
   }
 
   /**
-   * Resolve conflict by using remote data
+   * Merge data using the registered merge function for the entity type
    */
-  private static resolveRemoteWins<T>(
-    conflict: ConflictData<T>
-  ): ResolutionResult<T> {
-    // If remote is deleted, delete the item
-    if (conflict.remoteData === null) {
-      return {
-        resolvedData: null,
-        shouldDelete: true,
-        strategyUsed: ResolutionStrategy.REMOTE_WINS
-      };
-    }
-    
-    // Otherwise use remote data
-    return {
-      resolvedData: conflict.remoteData,
-      shouldDelete: false,
-      strategyUsed: ResolutionStrategy.REMOTE_WINS
-    };
-  }
-
-  /**
-   * Resolve conflict by using the most recently modified data
-   */
-  private static resolveLatestWins<T>(
-    conflict: ConflictData<T>
-  ): ResolutionResult<T> {
-    // If both are deleted, delete the item
-    if (conflict.localData === null && conflict.remoteData === null) {
-      return {
-        resolvedData: null,
-        shouldDelete: true,
-        strategyUsed: ResolutionStrategy.LATEST_WINS
-      };
-    }
-    
-    // If local is more recent, use local
-    if (conflict.localTimestamp > conflict.remoteTimestamp) {
-      return this.resolveLocalWins(conflict);
-    }
-    
-    // Otherwise use remote
-    return this.resolveRemoteWins(conflict);
-  }
-
-  /**
-   * Resolve conflict by merging local and remote data
-   */
-  private static async resolveMerge<T>(
-    conflict: ConflictData<T>,
-    entityType: string
-  ): Promise<ResolutionResult<T>> {
-    // If either is deleted, use the one that's not deleted
-    if (conflict.localData === null) {
-      return this.resolveRemoteWins(conflict);
-    }
-    
-    if (conflict.remoteData === null) {
-      return this.resolveLocalWins(conflict);
-    }
-    
-    // Look up custom merge function
-    const mergeFn = this.mergeFunctions.get(entityType);
+  private static mergeData<T>(entityType: string, localData: T, remoteData: T): T {
+    const mergeFn = mergeFunctions.get(entityType);
     
     if (mergeFn) {
-      // Use custom merge function
-      const mergedData = mergeFn(conflict.localData, conflict.remoteData);
-      
-      return {
-        resolvedData: mergedData,
-        shouldDelete: false,
-        strategyUsed: ResolutionStrategy.MERGE
-      };
+      return mergeFn(localData, remoteData);
     }
     
-    // Default merge behavior - use the latest data
-    return this.resolveLatestWins(conflict);
+    // If no merge function is registered, use the smart merge
+    return this.smartMergeData(entityType, localData, remoteData);
   }
 
   /**
-   * Resolve conflict by asking the user
+   * Intelligently merge data based on field-level changes
    */
-  private static async resolveManual<T>(
-    conflict: ConflictData<T>
-  ): Promise<ResolutionResult<T>> {
-    // If no manual resolution function is set, default to latest wins
-    if (!this.manualResolutionFn) {
-      console.warn('No manual resolution function set, defaulting to latest wins');
-      return this.resolveLatestWins(conflict);
+  private static smartMergeData<T>(entityType: string, localData: T, remoteData: T): T {
+    // Start with the remote data as the base
+    const result = { ...remoteData } as any;
+    
+    // Special handling for certain entity types
+    if (entityType === 'impact') {
+      return this.mergeImpactData(localData as any, remoteData as any) as T;
     }
     
-    // Call the manual resolution function
-    return this.manualResolutionFn(conflict);
+    if (entityType === 'collection' || entityType === 'order') {
+      return this.mergeCollectionData(localData as any, remoteData as any) as T;
+    }
+    
+    // For objects, merge fields intelligently
+    if (typeof localData === 'object' && typeof remoteData === 'object') {
+      for (const key in localData) {
+        if (Object.prototype.hasOwnProperty.call(localData, key)) {
+          // Skip id field
+          if (key === 'id') continue;
+          
+          // Skip metadata fields
+          if (['createdAt', 'updatedAt', '__typename'].includes(key)) continue;
+          
+          // If local value isn't null/undefined
+          if (localData[key] !== null && localData[key] !== undefined) {
+            // For objects, recursively merge
+            if (
+              typeof localData[key] === 'object' && 
+              !Array.isArray(localData[key]) && 
+              localData[key] !== null
+            ) {
+              if (
+                remoteData[key] && 
+                typeof remoteData[key] === 'object' && 
+                !Array.isArray(remoteData[key])
+              ) {
+                result[key] = this.smartMergeData(entityType + '.' + key, localData[key], remoteData[key]);
+              } else {
+                result[key] = localData[key];
+              }
+            } 
+            // For arrays, use remote value (arrays are harder to merge)
+            else if (Array.isArray(localData[key])) {
+              // For now, prefer remote arrays as merging arrays is complex
+              // A more sophisticated approach would detect added/removed items
+              result[key] = remoteData[key] || localData[key];
+            } 
+            // For primitive values
+            else {
+              const localTimestamp = (localData as any)?.updatedAt || 0;
+              const remoteTimestamp = (remoteData as any)?.updatedAt || 0;
+              
+              // Use local value if it was updated more recently
+              if (localTimestamp > remoteTimestamp) {
+                result[key] = localData[key];
+              }
+            }
+          }
+        }
+      }
+      
+      return result;
+    }
+    
+    // For primitive types, use remote data
+    return remoteData;
+  }
+
+  /**
+   * Merge impact data - sum numeric properties
+   */
+  private static mergeImpactData(localData: any, remoteData: any): any {
+    const result = { ...remoteData };
+    
+    // For impact data, sum the numeric fields
+    const numericFields = ['plasticSaved', 'co2Reduced', 'treesEquivalent', 'wasteRecycled'];
+    
+    for (const field of numericFields) {
+      if (
+        typeof localData[field] === 'number' && 
+        typeof remoteData[field] === 'number'
+      ) {
+        result[field] = localData[field] + remoteData[field];
+      } else if (typeof localData[field] === 'number') {
+        result[field] = localData[field];
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Merge collection or order data - handle line items
+   */
+  private static mergeCollectionData(localData: any, remoteData: any): any {
+    const result = { ...remoteData };
+    
+    // If local metadata exists and is more recent, use it
+    if (
+      localData.metadata && 
+      (!remoteData.metadata || localData.updatedAt > remoteData.updatedAt)
+    ) {
+      result.metadata = { ...localData.metadata };
+    }
+    
+    // For collections with items/lineItems, merge them intelligently
+    const itemsField = localData.items ? 'items' : 
+                      localData.lineItems ? 'lineItems' : null;
+    
+    if (itemsField && Array.isArray(localData[itemsField])) {
+      // Build maps of items by ID for both local and remote
+      const localItems = new Map();
+      localData[itemsField].forEach((item: any) => {
+        if (item.id) {
+          localItems.set(item.id, item);
+        }
+      });
+      
+      const remoteItems = new Map();
+      if (remoteData[itemsField] && Array.isArray(remoteData[itemsField])) {
+        remoteData[itemsField].forEach((item: any) => {
+          if (item.id) {
+            remoteItems.set(item.id, item);
+          }
+        });
+      }
+      
+      // Merge items from both sources
+      const mergedItems: any[] = [];
+      
+      // Add items from remote, updated with local data when available
+      remoteItems.forEach((remoteItem, id) => {
+        const localItem = localItems.get(id);
+        if (localItem) {
+          // For quantities and notes, prefer the local value if it's more recent
+          const mergedItem = { ...remoteItem };
+          
+          if (localItem.updatedAt > remoteItem.updatedAt) {
+            // For quantity, use the local value if it's different
+            if (
+              localItem.quantity !== undefined && 
+              localItem.quantity !== remoteItem.quantity
+            ) {
+              mergedItem.quantity = localItem.quantity;
+            }
+            
+            // For notes, use the local value if it's different
+            if (
+              localItem.notes !== undefined && 
+              localItem.notes !== remoteItem.notes
+            ) {
+              mergedItem.notes = localItem.notes;
+            }
+          }
+          
+          mergedItems.push(mergedItem);
+          localItems.delete(id);
+        } else {
+          mergedItems.push(remoteItem);
+        }
+      });
+      
+      // Add remaining local items that weren't in remote
+      localItems.forEach(localItem => {
+        mergedItems.push(localItem);
+      });
+      
+      result[itemsField] = mergedItems;
+    }
+    
+    return result;
   }
 }
 

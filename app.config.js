@@ -1,3 +1,6 @@
+// Set global timestamp as early as possible
+global.appStartTimestamp = Date.now();
+
 export default {
   name: "EcoCart",
   slug: "ecocart",
@@ -33,5 +36,23 @@ export default {
   experiments: {
     typedRoutes: true
   },
-  scheme: "ecocart"
+  scheme: "ecocart",
+  extra: {
+    // Enable performance monitoring in production
+    enablePerformanceMonitoring: true,
+  },
+  hooks: {
+    postPublish: [
+      {
+        file: 'sentry-expo/upload-sourcemaps',
+        config: {
+          organization: 'your-org-name',
+          project: 'ecocart',
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        }
+      }
+    ]
+  },
+  // Add the entry point
+  entryPoint: "./index.js"
 }; 

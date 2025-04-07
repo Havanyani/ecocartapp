@@ -1,13 +1,13 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from '@/components/ui/MapViewAdapter';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
 import { WebSocketService } from '@/services/WebSocketService';
+import { useTheme } from '@/theme';
 import { Collection } from '@/types/Collection';
 import { DeliveryPersonnel } from '@/types/DeliveryPersonnel';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 
 interface DeliveryPersonnelTrackerProps {
   collection: Collection;
@@ -20,7 +20,7 @@ export function DeliveryPersonnelTracker({
   deliveryPersonnel,
   onCallPersonnel,
 }: DeliveryPersonnelTrackerProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [personnelLocation, setPersonnelLocation] = useState<{
     latitude: number;
@@ -103,7 +103,7 @@ export function DeliveryPersonnelTracker({
   if (isLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.theme.colors.primary} />
         <ThemedText style={styles.loadingText}>
           Connecting to delivery personnel...
         </ThemedText>
@@ -115,7 +115,7 @@ export function DeliveryPersonnelTracker({
   if (error) {
     return (
       <ThemedView style={styles.errorContainer}>
-        <IconSymbol name="alert-circle" size={48} color={theme.colors.error} />
+        <IconSymbol name="alert-circle" size={48} color={theme.theme.colors.error} />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
       </ThemedView>
     );
@@ -125,7 +125,7 @@ export function DeliveryPersonnelTracker({
   if (!personnelLocation) {
     return (
       <ThemedView style={styles.noDataContainer}>
-        <IconSymbol name="location-outline" size={48} color={theme.colors.text.secondary} />
+        <IconSymbol name="location-outline" size={48} color={theme.theme.colors.textSecondary} />
         <ThemedText style={styles.noDataText}>
           Waiting for delivery personnel location...
         </ThemedText>
@@ -159,7 +159,7 @@ export function DeliveryPersonnelTracker({
           )}
         </View>
         <TouchableOpacity
-          style={[styles.callButton, { backgroundColor: theme.colors.primary }]}
+          style={[styles.callButton, { backgroundColor: theme.theme.colors.primary }]}
           onPress={handleCallPersonnel}
         >
           <IconSymbol name="call" size={20} color="#FFFFFF" />
@@ -188,7 +188,7 @@ export function DeliveryPersonnelTracker({
               <IconSymbol
                 name="person"
                 size={24}
-                color={theme.colors.primary}
+                color={theme.theme.colors.primary}
                 style={styles.markerIcon}
               />
             </View>
@@ -208,7 +208,7 @@ export function DeliveryPersonnelTracker({
                 <IconSymbol
                   name="location"
                   size={24}
-                  color={theme.colors.secondary}
+                  color={theme.theme.colors.secondary}
                   style={styles.markerIcon}
                 />
               </View>
@@ -220,7 +220,7 @@ export function DeliveryPersonnelTracker({
             <Polyline
               coordinates={routePath}
               strokeWidth={4}
-              strokeColor={theme.colors.primary}
+              strokeColor={theme.theme.colors.primary}
             />
           )}
         </MapView>

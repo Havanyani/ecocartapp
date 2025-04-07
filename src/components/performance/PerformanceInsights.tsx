@@ -1,3 +1,4 @@
+import { useTheme } from '@/theme';
 import { HapticTab } from '@components/ui/HapticTab';
 import { IconSymbol } from '@components/ui/IconSymbol';
 import { ThemedText } from '@components/ui/ThemedText';
@@ -15,6 +16,7 @@ interface Insight {
 }
 
 export function PerformanceInsights() {
+  const theme = useTheme()()();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Insight['category']>('collection');
 
@@ -69,7 +71,7 @@ export function PerformanceInsights() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText style={styles.title}>
-        <IconSymbol name="lightbulb-on" size={24} color="#2e7d32" />
+        <IconSymbol name="lightbulb-on" size={24} color={theme.colors.success} />
         Performance Insights
       </ThemedText>
 
@@ -79,14 +81,17 @@ export function PerformanceInsights() {
             key={category}
             style={[
               styles.categoryButton,
-              selectedCategory === category && styles.selectedCategory
+              { backgroundColor: theme.colors.background },
+              selectedCategory === category && { 
+                backgroundColor: theme.colors.success + '20' 
+              }
             ]}
             onPress={() => setSelectedCategory(category)}
           >
             <IconSymbol 
               name={getCategoryIcon(category)} 
               size={20} 
-              color={selectedCategory === category ? '#2e7d32' : '#666'} 
+              color={selectedCategory === category ? theme.colors.success : theme.colors.textSecondary} 
             />
             <ThemedText style={styles.categoryText}>
               {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -97,19 +102,29 @@ export function PerformanceInsights() {
 
       <Animated.View style={[styles.insightsContainer, { opacity: fadeAnim }]}>
         {filteredInsights.map(insight => (
-          <ThemedView key={insight.id} style={styles.insightCard}>
+          <ThemedView 
+            key={insight.id} 
+            style={[
+              styles.insightCard,
+              { 
+                backgroundColor: theme.colors.card,
+                shadowColor: theme.colors.black,
+                borderColor: theme.colors.border 
+              }
+            ]}
+          >
             <View style={styles.insightHeader}>
               <ThemedText style={styles.insightTitle}>{insight.title}</ThemedText>
               <IconSymbol
                 name={insight.trend >= 0 ? 'trending-up' : 'trending-down'}
                 size={20}
-                color={insight.trend >= 0 ? '#2e7d32' : '#d32f2f'}
+                color={insight.trend >= 0 ? theme.colors.success : theme.colors.error}
               />
             </View>
-            <ThemedText style={styles.insightDescription}>
+            <ThemedText style={[styles.insightDescription, { color: theme.colors.textSecondary }]}>
               {insight.description}
             </ThemedText>
-            <ThemedText style={styles.impactText}>
+            <ThemedText style={[styles.impactText, { color: theme.colors.success }]}>
               Impact: {insight.impact}%
             </ThemedText>
           </ThemedView>
@@ -138,10 +153,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginRight: 8,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-  },
-  selectedCategory: {
-    backgroundColor: '#e8f5e9',
   },
   categoryText: {
     marginLeft: 8,
@@ -155,8 +166,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -174,12 +184,10 @@ const styles = StyleSheet.create({
   },
   insightDescription: {
     fontSize: 14,
-    color: '#666',
     marginBottom: 8,
   },
   impactText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2e7d32',
   },
 }); 

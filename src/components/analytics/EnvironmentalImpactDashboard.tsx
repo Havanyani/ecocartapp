@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
-import { VictoryAxis, VictoryChart, VictoryLine, VictoryPie } from 'victory-native';
-import { useTheme } from '@/hooks/useTheme';
-import { DetailedEnvironmentalMetrics } from '@/services/EnvironmentalImpactService';
 import { IconSymbol, ThemedText, ThemedView } from '@/components/ui';
 import { HapticTab } from '@/components/ui/HapticTab';
+import { VictoryAxis, VictoryChart, VictoryLine, VictoryPie } from '@/components/ui/VictoryChartAdapter';
+import { DetailedEnvironmentalMetrics } from '@/services/EnvironmentalImpactService';
+import { useTheme } from '@/theme';
+import React, { useState } from 'react';
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 
 interface ImpactDashboardProps {
   metrics: DetailedEnvironmentalMetrics;
@@ -22,7 +22,7 @@ export function EnvironmentalImpactDashboard({
   historicalData,
   testID
 }: ImpactDashboardProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [activeTab, setActiveTab] = useState<'overview' | 'detailed' | 'trends'>('overview');
   const screenWidth = Dimensions.get('window').width;
 

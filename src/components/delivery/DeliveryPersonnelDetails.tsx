@@ -2,7 +2,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useDeliveryPersonnel } from '@/hooks/useDeliveryPersonnel';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { DeliveryPersonnel, DeliveryStatus } from '@/types/DeliveryPersonnel';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -14,7 +14,7 @@ interface DeliveryPersonnelDetailsProps {
 }
 
 export function DeliveryPersonnelDetails({ personnelId }: DeliveryPersonnelDetailsProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { personnel, isLoading, error } = useDeliveryPersonnel(personnelId);
   const [activeDeliveries, setActiveDeliveries] = useState<DeliveryStatus[]>([]);
 
@@ -45,7 +45,7 @@ export function DeliveryPersonnelDetails({ personnelId }: DeliveryPersonnelDetai
       case 'OFF_DUTY':
         return theme.colors.error;
       default:
-        return theme.colors.text.secondary;
+        return theme.colors.textSecondary;
     }
   };
 

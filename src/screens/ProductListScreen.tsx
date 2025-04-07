@@ -9,8 +9,8 @@ import { ThemedView } from '@/components/ui/ThemedView';
 import { isFeatureEnabled } from '@/config/featureFlags';
 import { useCart } from '@/hooks/useCart';
 import { useProducts } from '@/hooks/useProducts';
-import { useTheme } from '@/hooks/useTheme';
 import type { RootStackParamList } from '@/navigation/types';
+import { useTheme } from '@/theme';
 import type { Product } from '@/types/product';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
@@ -82,7 +82,7 @@ export function ProductListScreen({ navigation }: ProductListScreenProps): JSX.E
     return (
       <ThemedView style={styles.container}>
         <View style={styles.disabledContainer}>
-          <IconSymbol name="store-off" size={64} color={theme.colors.text.secondary} />
+          <IconSymbol name="store-off" size={64} color={theme.theme.colors.textSecondary} />
           <ThemedText style={styles.disabledTitle}>Product Catalog Disabled</ThemedText>
           <ThemedText style={styles.disabledMessage}>
             EcoCart is currently focused on waste collection and rewards. The product catalog will be available soon!
@@ -116,7 +116,7 @@ export function ProductListScreen({ navigation }: ProductListScreenProps): JSX.E
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
       <SearchBar
         onSearch={handleSearch}
         placeholder="Search products..."
@@ -143,7 +143,7 @@ export function ProductListScreen({ navigation }: ProductListScreenProps): JSX.E
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={[theme.colors.primary]}
+            colors={[theme.theme.colors.primary]}
           />
         }
         ListEmptyComponent={renderEmptyComponent}

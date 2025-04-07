@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { CollectionMaterials } from '@/types/Collection';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -22,7 +22,7 @@ export function WeightEstimator({
   onEstimate,
   initialWeight = 0,
 }: WeightEstimatorProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
   const [weights, setWeights] = useState<MaterialWeight[]>([]);
   const [totalWeight, setTotalWeight] = useState<number>(initialWeight);
 

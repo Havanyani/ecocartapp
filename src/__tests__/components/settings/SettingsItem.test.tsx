@@ -1,5 +1,5 @@
 import { SettingsItem } from '@/components/ui/settings/SettingsItem';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 

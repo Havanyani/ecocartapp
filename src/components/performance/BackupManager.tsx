@@ -1,7 +1,8 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { performanceDataManager } from '@/utils/PerformanceDataManager';
-import * as FileSystem from 'expo-file-system';
+import FileSystem from '@/utils/cross-platform/fileSystem';
+import { getSafeTheme } from '@/utils/webFallbacks';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -15,7 +16,8 @@ interface BackupMetadata {
 }
 
 export const BackupManager: React.FC = () => {
-  const { theme } = useTheme();
+  const themeResult = useTheme();
+  const theme = getSafeTheme(themeResult);
   const [backupFiles, setBackupFiles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [backupMetadata, setBackupMetadata] = useState<Record<string, BackupMetadata>>({});

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { IconSymbol, ThemedText, ThemedView } from '@/components/ui';
 import { HapticTab } from '@/components/ui/HapticTab';
 
@@ -26,7 +26,7 @@ export function ImpactAchievements({
   onAchievementClick,
   testID
 }: ImpactAchievementsProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <ThemedView style={styles.container} testID={testID}>

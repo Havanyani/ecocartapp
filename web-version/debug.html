@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoCart Web Debug</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      color: #2e7d32;
+      border-bottom: 2px solid #2e7d32;
+      padding-bottom: 10px;
+    }
+    .section {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .success {
+      color: #2e7d32;
+      background-color: #e8f5e9;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .error {
+      color: #c62828;
+      background-color: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .button {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>EcoCart Web Diagnostics</h1>
+  
+  <div class="section">
+    <h2>Browser Information</h2>
+    <div id="browser-info"></div>
+  </div>
+  
+  <div class="section">
+    <h2>Required Libraries</h2>
+    <div id="libraries-check"></div>
+  </div>
+  
+  <div class="section">
+    <h2>DOM Manipulation Test</h2>
+    <div id="dom-test"></div>
+  </div>
+  
+  <div class="section">
+    <h2>Network Test</h2>
+    <div id="network-test"></div>
+    <button class="button" id="test-network">Test Network</button>
+  </div>
+  
+  <div class="section">
+    <h2>React Native Web Test</h2>
+    <div id="rnw-test"></div>
+    <button class="button" id="test-rnw">Test React Native Web</button>
+  </div>
+  
+  <div class="section">
+    <h2>Actions</h2>
+    <a href="/" class="button">Go Back to Main App</a>
+  </div>
+
+  <script>
+    // Browser information
+    function displayBrowserInfo() {
+      const infoElement = document.getElementById('browser-info');
+      infoElement.innerHTML = `
+        <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+        <p><strong>Platform:</strong> ${navigator.platform}</p>
+        <p><strong>Cookies Enabled:</strong> ${navigator.cookieEnabled}</p>
+        <p><strong>Language:</strong> ${navigator.language}</p>
+      `;
+    }
+    
+    // Check for required libraries
+    function checkLibraries() {
+      const librariesElement = document.getElementById('libraries-check');
+      const libraries = [
+        { name: 'React', check: () => typeof React !== 'undefined' },
+        { name: 'ReactDOM', check: () => typeof ReactDOM !== 'undefined' },
+        { name: 'ReactNativeWeb', check: () => typeof ReactNativeWeb !== 'undefined' }
+      ];
+      
+      libraries.forEach(lib => {
+        try {
+          const isAvailable = lib.check();
+          librariesElement.innerHTML += `
+            <div class="${isAvailable ? 'success' : 'error'}">
+              <strong>${lib.name}:</strong> ${isAvailable ? 'Available' : 'Not Available'}
+            </div>
+          `;
+        } catch (error) {
+          librariesElement.innerHTML += `
+            <div class="error">
+              <strong>${lib.name}:</strong> Error checking (${error.message})
+            </div>
+          `;
+        }
+      });
+    }
+    
+    // Test DOM manipulation
+    function testDOM() {
+      const domElement = document.getElementById('dom-test');
+      try {
+        const testDiv = document.createElement('div');
+        testDiv.textContent = 'DOM manipulation working correctly';
+        testDiv.className = 'success';
+        domElement.appendChild(testDiv);
+      } catch (error) {
+        domElement.innerHTML = `
+          <div class="error">
+            DOM test failed: ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    // Network tests
+    function setupNetworkTest() {
+      const button = document.getElementById('test-network');
+      button.addEventListener('click', async () => {
+        const networkElement = document.getElementById('network-test');
+        networkElement.innerHTML = '<p>Testing network...</p>';
+        
+        try {
+          // Try to fetch the index.html page
+          const response = await fetch('/');
+          const status = response.status;
+          
+          if (status >= 200 && status < 300) {
+            networkElement.innerHTML = `
+              <div class="success">
+                <p>Network test successful! Status: ${status}</p>
+              </div>
+            `;
+          } else {
+            networkElement.innerHTML = `
+              <div class="error">
+                <p>Network test failed. Status: ${status}</p>
+              </div>
+            `;
+          }
+        } catch (error) {
+          networkElement.innerHTML = `
+            <div class="error">
+              <p>Network test failed: ${error.message}</p>
+            </div>
+          `;
+        }
+      });
+    }
+    
+    // Test React Native Web
+    function setupRNWTest() {
+      const button = document.getElementById('test-rnw');
+      button.addEventListener('click', () => {
+        const rnwElement = document.getElementById('rnw-test');
+        
+        try {
+          if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof ReactNativeWeb === 'undefined') {
+            rnwElement.innerHTML = `
+              <div class="error">
+                <p>Required libraries not available</p>
+              </div>
+            `;
+            return;
+          }
+          
+          // Try to create a simple React Native Web component
+          const { View, Text } = ReactNativeWeb;
+          
+          const TestComponent = () => {
+            return React.createElement(
+              View, 
+              { style: { padding: 10, backgroundColor: '#e8f5e9', borderRadius: 4 } },
+              React.createElement(
+                Text,
+                { style: { color: '#2e7d32' } },
+                'React Native Web is working correctly!'
+              )
+            );
+          };
+          
+          // Create a container for the component
+          const container = document.createElement('div');
+          rnwElement.innerHTML = '';
+          rnwElement.appendChild(container);
+          
+          // Render the component
+          const root = ReactDOM.createRoot(container);
+          root.render(React.createElement(TestComponent));
+        } catch (error) {
+          rnwElement.innerHTML = `
+            <div class="error">
+              <p>React Native Web test failed: ${error.message}</p>
+              <pre>${error.stack}</pre>
+            </div>
+          `;
+        }
+      });
+    }
+    
+    // Run all tests
+    window.addEventListener('DOMContentLoaded', () => {
+      displayBrowserInfo();
+      checkLibraries();
+      testDOM();
+      setupNetworkTest();
+      setupRNWTest();
+    });
+  </script>
+  
+  <!-- Load the required libraries -->
+  <script crossorigin src="https://unpkg.com/react@18.3.0/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.0/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-native-web@0.19.6/dist/index.js"></script>
+</body>
+</html> 

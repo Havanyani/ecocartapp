@@ -1,88 +1,43 @@
 /**
  * AuthService.ts
  * 
- * Service for handling user authentication, including login, signup, and token management.
- * Works with the API service and provides methods for token refreshing and validation.
+ * Service for handling authentication-related API calls
  */
 
-import { PerformanceMonitor } from '@/utils/PerformanceMonitoring';
-import { SafeStorage } from '@/utils/storage';
-import { jwtDecode } from "jwt-decode";
-import ApiService, { ApiError, ApiErrorType } from './ApiService';
+import apiClient from '@/api/ApiClient';
+import {
+    AuthUser,
+    LoginFormData,
+    RegisterFormData,
+    ResetPasswordFormData
+} from '@/types/auth';
+import { secureStorage } from '@/utils/SecureStorage';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Facebook from 'expo-auth-session/providers/facebook';
+import * as Google from 'expo-auth-session/providers/google';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 
-// Auth token storage keys
+// Constants for token storage
 const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_DATA_KEY = 'user_data';
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const USER_CREDENTIALS_KEY = 'user_credentials';
 
-// Token payload interface
-interface TokenPayload {
-  sub: string; // User ID
-  email: string;
-  name?: string;
-  role?: string;
-  exp: number; // Expiration timestamp
-}
+// Auto-close auth session
+WebBrowser.maybeCompleteAuthSession();
 
-// User data interface
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  profilePictureUrl?: string; // Profile picture URL
-  preferences?: {
-    notifications: boolean;
-    darkMode: boolean;
-    language: string;
-    units: 'metric' | 'imperial';
-  };
-  stats?: {
-    totalPoints?: number;
-    totalCollections: number;
-    totalWeight: number;
-    co2Saved: number;
-    level: number;
-    points: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Login request
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-// Login response
-export interface AuthResponse {
-  token: string;
-  refreshToken: string;
-  user: User;
-}
-
-// Signup request
-export interface SignupRequest {
-  email: string;
-  password: string;
-  name: string;
-}
-
-// Auth service class
+/**
+ * Auth Service for handling all authentication operations
+ */
 export class AuthService {
   private static instance: AuthService;
-  private currentUser: User | null = null;
-  private authToken: string | null = null;
-  private refreshToken: string | null = null;
-  private tokenExpirationTimer: NodeJS.Timeout | null = null;
-
-  private constructor() {
-    // Private constructor for singleton pattern
-  }
-
+  
+  private constructor() {}
+  
   /**
-   * Get AuthService instance (singleton)
+   * Get singleton instance
    */
   public static getInstance(): AuthService {
     if (!this.instance) {
@@ -90,285 +45,450 @@ export class AuthService {
     }
     return this.instance;
   }
-
+  
   /**
-   * Initialize the auth service by loading saved tokens
+   * Log in with email and password
    */
-  public async initialize(): Promise<void> {
-    try {
-      // Load tokens from storage
-      const [authToken, refreshToken, userData] = await Promise.all([
-        SafeStorage.getItem(AUTH_TOKEN_KEY),
-        SafeStorage.getItem(REFRESH_TOKEN_KEY),
-        SafeStorage.getItem(USER_DATA_KEY),
-      ]);
-
-      if (authToken) {
-        this.authToken = authToken;
-        ApiService.setAuthToken(authToken);
-        
-        // Set up token expiration
-        this.setupTokenExpiration(authToken);
-      }
-
-      if (refreshToken) {
-        this.refreshToken = refreshToken;
-        ApiService.setRefreshToken(refreshToken);
-      }
-
-      if (userData) {
-        this.currentUser = JSON.parse(userData);
-      }
-    } catch (error) {
-      console.error('Failed to initialize auth service:', error);
-      this.clearAuth();
-    }
-  }
-
-  /**
-   * Log in a user with email and password
-   */
-  public async login(credentials: LoginRequest): Promise<User> {
-    try {
-      const response = await ApiService.post<AuthResponse>('/auth/login', credentials);
+  public async login(data: LoginFormData): Promise<{ user: AuthUser; token: string }> {
+    const response = await apiClient.post<{ user: AuthUser; token: string; refreshToken: string }>(
+      '/auth/login', 
+      data
+    );
+    
+    if (response.data) {
+      // Store tokens
+      await this.storeTokens(response.data.token, response.data.refreshToken);
       
-      await this.handleAuthResponse(response.data);
-      return this.currentUser!;
-    } catch (error) {
-      // Handle specific auth errors
-      if (error instanceof ApiError && error.type === ApiErrorType.AUTH) {
-        throw new Error('Invalid email or password');
-      }
-      throw error;
+      // Set auth token in API client
+      apiClient.setAuthToken(response.data.token);
+      apiClient.setRefreshToken(response.data.refreshToken);
+      
+      return {
+        user: response.data.user,
+        token: response.data.token
+      };
     }
+    
+    throw new Error('Failed to log in');
   }
-
+  
   /**
    * Register a new user
    */
-  public async signup(userData: SignupRequest): Promise<User> {
-    try {
-      const response = await ApiService.post<AuthResponse>('/auth/signup', userData);
+  public async register(data: RegisterFormData): Promise<{ user: AuthUser; token: string }> {
+    const response = await apiClient.post<{ user: AuthUser; token: string; refreshToken: string }>(
+      '/auth/register', 
+      data
+    );
+    
+    if (response.data) {
+      // Store tokens
+      await this.storeTokens(response.data.token, response.data.refreshToken);
       
-      await this.handleAuthResponse(response.data);
-      return this.currentUser!;
-    } catch (error) {
-      // Handle specific errors
-      if (error instanceof ApiError && error.status === 409) {
-        throw new Error('Email already in use');
-      }
-      throw error;
+      // Set auth token in API client
+      apiClient.setAuthToken(response.data.token);
+      apiClient.setRefreshToken(response.data.refreshToken);
+      
+      return {
+        user: response.data.user,
+        token: response.data.token
+      };
     }
+    
+    throw new Error('Failed to register');
   }
-
+  
   /**
    * Log out the current user
    */
   public async logout(): Promise<void> {
     try {
-      // Call logout endpoint if online
-      if (this.authToken) {
-        try {
-          await ApiService.post('/auth/logout', { refreshToken: this.refreshToken });
-        } catch (error) {
-          // Ignore errors when logging out
-          console.warn('Error during logout API call:', error);
-        }
-      }
-    } finally {
-      // Always clear auth state, even if API call fails
-      await this.clearAuth();
-    }
-  }
-
-  /**
-   * Refresh the authentication token
-   */
-  public async refreshAuthToken(): Promise<string | null> {
-    if (!this.refreshToken) {
-      return null;
+      // Attempt to notify the server
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      console.warn('Error notifying server about logout:', error);
     }
     
+    // Clear tokens regardless of server response
+    await this.clearTokens();
+    
+    // Clear tokens in API client
+    apiClient.setAuthToken(null);
+    apiClient.setRefreshToken(null);
+  }
+  
+  /**
+   * Request a password reset
+   */
+  public async requestPasswordReset(email: string): Promise<boolean> {
+    const response = await apiClient.post<{ success: boolean }>(
+      '/auth/forgot-password',
+      { email }
+    );
+    
+    return response.data?.success || false;
+  }
+  
+  /**
+   * Reset password with token
+   */
+  public async resetPassword(data: ResetPasswordFormData): Promise<boolean> {
+    const response = await apiClient.post<{ success: boolean }>(
+      '/auth/reset-password',
+      data
+    );
+    
+    return response.data?.success || false;
+  }
+  
+  /**
+   * Get the current auth token
+   */
+  public async getAuthToken(): Promise<string | null> {
+    return await secureStorage.getItem(AUTH_TOKEN_KEY);
+  }
+  
+  /**
+   * Refresh the auth token using the refresh token
+   */
+  public async refreshToken(): Promise<string | null> {
     try {
-      const response = await ApiService.post<AuthResponse>(
-        '/auth/refresh',
-        { refreshToken: this.refreshToken }
+      const refreshToken = await secureStorage.getItem(REFRESH_TOKEN_KEY);
+      
+      if (!refreshToken) {
+        return null;
+      }
+      
+      const response = await apiClient.post<{ token: string; refreshToken: string }>(
+        '/auth/refresh-token',
+        { refreshToken }
       );
       
-      // Update tokens
-      await this.setTokens(response.data.token, response.data.refreshToken, response.data.user);
+      if (response.data) {
+        // Store new tokens
+        await this.storeTokens(response.data.token, response.data.refreshToken);
+        
+        // Update token in API client
+        apiClient.setAuthToken(response.data.token);
+        
+        return response.data.token;
+      }
       
-      return response.data.token;
+      return null;
     } catch (error) {
       console.error('Failed to refresh token:', error);
-      await this.clearAuth();
+      await this.clearTokens();
       return null;
     }
   }
-
+  
   /**
-   * Check if user is authenticated
+   * Check if the user is logged in by verifying the token
    */
-  public isAuthenticated(): boolean {
-    return !!this.authToken && !!this.currentUser;
+  public async isLoggedIn(): Promise<boolean> {
+    try {
+      const token = await secureStorage.getItem(AUTH_TOKEN_KEY);
+      
+      if (!token) {
+        return false;
+      }
+      
+      // Verify token with the server
+      const response = await apiClient.post<{ valid: boolean }>(
+        '/auth/verify-token',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.data?.valid) {
+        apiClient.setAuthToken(token);
+        return true;
+      }
+      
+      // If token is invalid, try to refresh it
+      const newToken = await this.refreshToken();
+      return !!newToken;
+    } catch (error) {
+      console.error('Error checking login status:', error);
+      return false;
+    }
   }
-
+  
   /**
    * Get the current user
    */
-  public getCurrentUser(): User | null {
-    return this.currentUser;
-  }
-
-  /**
-   * Update the user's profile
-   */
-  public async updateProfile(updates: Partial<User>): Promise<User> {
-    if (!this.isAuthenticated()) {
-      throw new Error('User not authenticated');
-    }
-    
+  public async getCurrentUser(): Promise<AuthUser | null> {
     try {
-      const response = await ApiService.put<User>('/users/profile', updates);
+      const token = await secureStorage.getItem(AUTH_TOKEN_KEY);
       
-      // Update stored user data
-      this.currentUser = response.data;
-      await SafeStorage.setItem(USER_DATA_KEY, JSON.stringify(this.currentUser));
+      if (!token) {
+        return null;
+      }
       
-      return this.currentUser;
+      apiClient.setAuthToken(token);
+      
+      const response = await apiClient.get<{ user: AuthUser }>('/auth/me');
+      return response.data?.user || null;
     } catch (error) {
-      throw error;
+      console.error('Error getting current user:', error);
+      return null;
     }
   }
-
+  
+  // === Social Authentication ===
+  
   /**
-   * Change the user's password
+   * Sign in with Google
    */
-  public async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    if (!this.isAuthenticated()) {
-      throw new Error('User not authenticated');
-    }
-    
+  public async signInWithGoogle(): Promise<{ user: AuthUser; token: string } | null> {
     try {
-      await ApiService.post('/auth/change-password', {
-        currentPassword,
-        newPassword
+      const [request, response, promptAsync] = Google.useAuthRequest({
+        clientId: 'YOUR_WEB_CLIENT_ID',
+        androidClientId: 'YOUR_ANDROID_CLIENT_ID',
+        iosClientId: 'YOUR_IOS_CLIENT_ID',
       });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        throw new Error('Current password is incorrect');
+      
+      if (response?.type === 'success') {
+        const { authentication } = response;
+        
+        // Exchange the code for tokens on your server
+        const authResponse = await apiClient.post<{ user: AuthUser; token: string; refreshToken: string }>(
+          '/auth/google',
+          { token: authentication?.accessToken }
+        );
+        
+        if (authResponse.data) {
+          // Store tokens
+          await this.storeTokens(authResponse.data.token, authResponse.data.refreshToken);
+          
+          // Set auth token in API client
+          apiClient.setAuthToken(authResponse.data.token);
+          
+          return {
+            user: authResponse.data.user,
+            token: authResponse.data.token
+          };
+        }
+      } else {
+        await promptAsync();
       }
+      
+      return null;
+    } catch (error) {
+      console.error('Google sign-in error:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Request a password reset for a user
+   * Sign in with Apple
    */
-  public async requestPasswordReset(email: string): Promise<void> {
+  public async signInWithApple(): Promise<{ user: AuthUser; token: string } | null> {
     try {
-      await ApiService.post('/auth/request-reset', { email });
-    } catch (error) {
-      // We don't want to reveal whether an email exists in our system
-      // Just log the error but don't throw it
-      console.warn('Error requesting password reset:', error);
-    }
-  }
-
-  /**
-   * Set tokens from auth response
-   */
-  private async handleAuthResponse(authResponse: AuthResponse): Promise<void> {
-    const { token, refreshToken, user } = authResponse;
-    
-    await this.setTokens(token, refreshToken, user);
-  }
-
-  /**
-   * Set tokens and user data
-   */
-  private async setTokens(token: string, refreshToken: string, user: User): Promise<void> {
-    // Set tokens in memory
-    this.authToken = token;
-    this.refreshToken = refreshToken;
-    this.currentUser = user;
-    
-    // Set tokens in API service
-    ApiService.setAuthToken(token);
-    ApiService.setRefreshToken(refreshToken);
-    
-    // Save tokens to storage
-    await Promise.all([
-      SafeStorage.setItem(AUTH_TOKEN_KEY, token),
-      SafeStorage.setItem(REFRESH_TOKEN_KEY, refreshToken),
-      SafeStorage.setItem(USER_DATA_KEY, JSON.stringify(user))
-    ]);
-    
-    // Set up token expiration
-    this.setupTokenExpiration(token);
-    
-    // Log the successful authentication
-    PerformanceMonitor.trackNetworkRequest('AUTH', 0, 200);
-  }
-
-  /**
-   * Clear all authentication data
-   */
-  private async clearAuth(): Promise<void> {
-    // Clear memory
-    this.authToken = null;
-    this.refreshToken = null;
-    this.currentUser = null;
-    
-    // Clear from API service
-    ApiService.setAuthToken(null);
-    ApiService.setRefreshToken(null);
-    
-    // Clear storage
-    await Promise.all([
-      SafeStorage.removeItem(AUTH_TOKEN_KEY),
-      SafeStorage.removeItem(REFRESH_TOKEN_KEY),
-      SafeStorage.removeItem(USER_DATA_KEY)
-    ]);
-    
-    // Clear token expiration timer
-    if (this.tokenExpirationTimer) {
-      clearTimeout(this.tokenExpirationTimer);
-      this.tokenExpirationTimer = null;
-    }
-  }
-
-  /**
-   * Set up timer to refresh token before expiration
-   */
-  private setupTokenExpiration(token: string): void {
-    try {
-      // Clear any existing timer
-      if (this.tokenExpirationTimer) {
-        clearTimeout(this.tokenExpirationTimer);
+      // Check if Apple authentication is available on this device
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      
+      if (Platform.OS === 'ios' && isAvailable) {
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        
+        // Exchange the identity token for your own auth token
+        const authResponse = await apiClient.post<{ user: AuthUser; token: string; refreshToken: string }>(
+          '/auth/apple',
+          { identityToken: credential.identityToken }
+        );
+        
+        if (authResponse.data) {
+          // Store tokens
+          await this.storeTokens(authResponse.data.token, authResponse.data.refreshToken);
+          
+          // Set auth token in API client
+          apiClient.setAuthToken(authResponse.data.token);
+          
+          return {
+            user: authResponse.data.user,
+            token: authResponse.data.token
+          };
+        }
+      } else {
+        throw new Error('Apple Sign In is not available on this device');
       }
       
-      // Decode the token
-      const decoded = jwtDecode<TokenPayload>(token);
-      
-      // Calculate expiration time
-      const expiresAt = decoded.exp * 1000; // Convert to milliseconds
-      const now = Date.now();
-      const timeUntilExpiration = Math.max(0, expiresAt - now - 60000); // 1 minute before actual expiration
-      
-      // Set timer to refresh token
-      this.tokenExpirationTimer = setTimeout(() => {
-        this.refreshAuthToken().catch(() => {
-          // If refresh fails, log the user out
-          this.clearAuth();
-        });
-      }, timeUntilExpiration);
+      return null;
     } catch (error) {
-      console.error('Failed to setup token expiration:', error);
+      console.error('Apple sign-in error:', error);
+      throw error;
     }
+  }
+  
+  /**
+   * Sign in with Facebook
+   */
+  public async signInWithFacebook(): Promise<{ user: AuthUser; token: string } | null> {
+    try {
+      const [request, response, promptAsync] = Facebook.useAuthRequest({
+        clientId: 'YOUR_FACEBOOK_APP_ID',
+      });
+      
+      if (response?.type === 'success') {
+        const { authentication } = response;
+        
+        // Exchange the token with your server
+        const authResponse = await apiClient.post<{ user: AuthUser; token: string; refreshToken: string }>(
+          '/auth/facebook',
+          { token: authentication?.accessToken }
+        );
+        
+        if (authResponse.data) {
+          // Store tokens
+          await this.storeTokens(authResponse.data.token, authResponse.data.refreshToken);
+          
+          // Set auth token in API client
+          apiClient.setAuthToken(authResponse.data.token);
+          
+          return {
+            user: authResponse.data.user,
+            token: authResponse.data.token
+          };
+        }
+      } else {
+        await promptAsync();
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Facebook sign-in error:', error);
+      throw error;
+    }
+  }
+  
+  // === Biometric Authentication ===
+  
+  /**
+   * Check if biometric authentication is available
+   */
+  public async isBiometricAvailable(): Promise<boolean> {
+    const isAvailable = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    
+    return isAvailable && isEnrolled;
+  }
+  
+  /**
+   * Enable biometric authentication for the current user
+   */
+  public async enableBiometric(email: string, password: string): Promise<boolean> {
+    try {
+      // Verify credentials first
+      await this.login({ email, password });
+      
+      // Store credentials securely for biometric auth
+      await secureStorage.setItem(USER_CREDENTIALS_KEY, JSON.stringify({ email, password }));
+      await secureStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to enable biometric authentication:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Disable biometric authentication
+   */
+  public async disableBiometric(): Promise<boolean> {
+    try {
+      await secureStorage.removeItem(USER_CREDENTIALS_KEY);
+      await secureStorage.removeItem(BIOMETRIC_ENABLED_KEY);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to disable biometric authentication:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Check if biometric authentication is enabled
+   */
+  public async isBiometricEnabled(): Promise<boolean> {
+    try {
+      const enabled = await secureStorage.getItem(BIOMETRIC_ENABLED_KEY);
+      return enabled === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  /**
+   * Authenticate with biometrics
+   */
+  public async authenticateWithBiometric(): Promise<{ user: AuthUser; token: string } | null> {
+    try {
+      // Check if biometric is available and enabled
+      const isBiometricAvailable = await this.isBiometricAvailable();
+      const isBiometricEnabled = await this.isBiometricEnabled();
+      
+      if (!isBiometricAvailable || !isBiometricEnabled) {
+        throw new Error('Biometric authentication is not available or not enabled');
+      }
+      
+      // Authenticate with biometrics
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to continue',
+        fallbackLabel: 'Use Password',
+      });
+      
+      if (result.success) {
+        // Retrieve stored credentials
+        const credentialsJson = await secureStorage.getItem(USER_CREDENTIALS_KEY);
+        
+        if (credentialsJson) {
+          const credentials = JSON.parse(credentialsJson) as { email: string; password: string };
+          
+          // Log in with stored credentials
+          return await this.login(credentials);
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Biometric authentication error:', error);
+      throw error;
+    }
+  }
+  
+  // === Private Helper Methods ===
+  
+  /**
+   * Store auth and refresh tokens
+   */
+  private async storeTokens(token: string, refreshToken: string): Promise<void> {
+    await Promise.all([
+      secureStorage.setItem(AUTH_TOKEN_KEY, token),
+      secureStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+    ]);
+  }
+  
+  /**
+   * Clear stored tokens
+   */
+  private async clearTokens(): Promise<void> {
+    await Promise.all([
+      secureStorage.removeItem(AUTH_TOKEN_KEY),
+      secureStorage.removeItem(REFRESH_TOKEN_KEY)
+    ]);
   }
 }
 
-// Create and export a singleton instance
-const authService = AuthService.getInstance();
+// Export default instance
+export const authService = AuthService.getInstance();
 export default authService; 

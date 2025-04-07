@@ -10,7 +10,7 @@ import {
 import { useDeliveryRoute } from '@/hooks/useDeliveryRoute';
 import { useLocation } from '@/hooks/useLocation';
 import { usePlasticCollection } from '@/hooks/usePlasticCollection';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
@@ -47,7 +47,7 @@ interface OptimizedRoute {
 }
 
 export function DeliveryPersonnelScreen() {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const {
     pickups,
     isLoading,

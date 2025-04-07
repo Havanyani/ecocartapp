@@ -2,7 +2,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useGroceryStore } from '@/hooks/useGroceryStore';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { GroceryStore, Product } from '@/types/GroceryStore';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
@@ -13,7 +13,7 @@ interface StoreDetailsProps {
 }
 
 export function StoreDetails({ store }: StoreDetailsProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { products, isLoading, error, searchProducts, getStoreProducts } = useGroceryStore();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -53,7 +53,7 @@ export function StoreDetails({ store }: StoreDetailsProps) {
         style={[
           styles.categoryText,
           {
-            color: selectedCategory === item ? theme.colors.text.inverse : theme.colors.text.primary,
+            color: selectedCategory === item ? theme.colors.textInverse : theme.colors.text,
           },
         ]}
         onPress={() => setSelectedCategory(selectedCategory === item ? null : item)}
@@ -87,13 +87,13 @@ export function StoreDetails({ store }: StoreDetailsProps) {
         <View style={styles.contactInfo}>
           {store.contactNumber && (
             <View style={styles.contactItem}>
-              <IconSymbol name="phone" size={16} color={theme.colors.text.secondary} />
+              <IconSymbol name="phone" size={16} color={theme.colors.textSecondary} />
               <ThemedText style={styles.contactText}>{store.contactNumber}</ThemedText>
             </View>
           )}
           {store.email && (
             <View style={styles.contactItem}>
-              <IconSymbol name="email" size={16} color={theme.colors.text.secondary} />
+              <IconSymbol name="email" size={16} color={theme.colors.textSecondary} />
               <ThemedText style={styles.contactText}>{store.email}</ThemedText>
             </View>
           )}

@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, Text, TextProps } from 'react-native';
 
@@ -7,14 +7,14 @@ interface ThemedTextProps extends TextProps {
 }
 
 export function ThemedText({ style, ...props }: ThemedTextProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <Text
       style={[
         styles.text,
         {
-          color: theme.colors.text.primary,
+          color: theme.theme.colors.text || '#000000',
         },
         style,
       ]}

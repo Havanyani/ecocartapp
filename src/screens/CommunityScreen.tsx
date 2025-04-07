@@ -11,13 +11,13 @@ import { useTheme } from '../hooks/useTheme';
 const Tab = createMaterialTopTabNavigator();
 
 function TabBarLabel({ focused, children }: { focused: boolean; children: string }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   return (
     <ThemedText
       style={[
         styles.tabLabel,
         {
-          color: focused ? theme.colors.primary : theme.colors.text,
+          color: focused ? theme.theme.colors.primary : theme.theme.colors.text,
           fontWeight: focused ? 'bold' : 'normal',
         },
       ]}
@@ -28,19 +28,19 @@ function TabBarLabel({ focused, children }: { focused: boolean; children: string
 }
 
 export function CommunityScreen() {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <ThemedView style={styles.container}>
       <Tab.Navigator
         screenOptions={{
           tabBarStyle: {
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.theme.colors.background,
             elevation: 0,
             shadowOpacity: 0,
           },
           tabBarIndicatorStyle: {
-            backgroundColor: theme.colors.primary,
+            backgroundColor: theme.theme.colors.primary,
           },
           tabBarLabel: ({ focused, children }) => (
             <TabBarLabel focused={focused}>{children}</TabBarLabel>

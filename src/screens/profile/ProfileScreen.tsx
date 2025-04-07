@@ -171,6 +171,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
             <TouchableOpacity 
               style={styles.optionItem}
+              onPress={() => navigation.navigate('SmartHome')}
+            >
+              <View style={styles.optionContent}>
+                <Ionicons name="home" size={22} color="#2C3E50" />
+                <Text style={styles.optionText}>Smart Home</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.optionItem}
               onPress={() => navigation.navigate('performance')}
             >
               <View style={styles.optionContent}>
@@ -250,7 +261,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           style={styles.logoutButton}
           onPress={confirmLogout}
         >
-          <Ionicons name="log-out" size={20} color="#FF3B30" />
+          <Ionicons name="log-out" size={20} color="#E74C3C" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
         

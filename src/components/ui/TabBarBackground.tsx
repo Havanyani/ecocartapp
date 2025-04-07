@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
 
@@ -11,7 +11,7 @@ export const TabBarBackground: React.FC<TabBarBackgroundProps> = ({
   style,
   ...props
 }) => {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <View
@@ -19,8 +19,9 @@ export const TabBarBackground: React.FC<TabBarBackgroundProps> = ({
         styles.container,
         {
           backgroundColor: blurred 
-            ? theme.colors.background + '80'
-            : theme.colors.background
+            ? theme.theme.colors.background + '80'
+            : theme.theme.colors.background,
+          borderColor: theme.theme.colors.border
         },
         style
       ]}
@@ -33,6 +34,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ccc',
   }
 }); 

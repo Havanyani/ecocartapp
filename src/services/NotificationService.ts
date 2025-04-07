@@ -11,86 +11,79 @@
 
 import { CollectionStatus } from '@/types/Collection';
 import { DeliveryStatus } from '@/types/DeliveryPersonnel';
-import { NotificationCategory, NotificationChannel, NotificationPreferences } from '@/types/NotificationPreferences';
+import { Notification } from '@/types/Notification';
+import { DEFAULT_NOTIFICATION_PREFERENCES, NotificationCategory, NotificationChannel, NotificationPreferences } from '@/types/NotificationPreferences';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { ApiService } from './ApiService';
 import { WebSocketService } from './WebSocketService';
 
 // Storage keys
-const NOTIFICATION_PREFERENCES_KEY = 'notification_preferences';
-const PUSH_TOKEN_KEY = 'push_notification_token';
+const NOTIFICATION_PREFERENCES_KEY = 'eco_cart_notification_preferences';
+const PUSH_TOKEN_KEY = 'eco_cart_device_token';
+const NOTIFICATION_HISTORY_KEY = 'eco_cart_notification_history';
+const MAX_NOTIFICATION_HISTORY = 100;
 
-// Default notification preferences
+// Default preferences with proper importance property
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   allNotificationsEnabled: true,
   pushNotificationsEnabled: true,
-  emailNotificationsEnabled: true,
+  emailNotificationsEnabled: false,
   smsNotificationsEnabled: false,
   
-  collection: {
+  [NotificationCategory.COLLECTION]: {
     enabled: true,
     channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
-    priority: 'high'
+    importance: 'high'
   },
   
-  delivery: {
+  [NotificationCategory.DELIVERY]: {
     enabled: true,
     channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
-    priority: 'high'
+    importance: 'high'
   },
   
-  system: {
+  [NotificationCategory.REWARDS]: {
     enabled: true,
     channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
-    priority: 'medium'
+    importance: 'medium'
   },
   
-  rewards: {
+  [NotificationCategory.COMMUNITY]: {
+    enabled: true,
+    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
+    importance: 'medium'
+  },
+  
+  [NotificationCategory.SYSTEM]: {
     enabled: true,
     channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    priority: 'medium'
-  },
-  
-  community: {
-    enabled: true,
-    channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP],
-    priority: 'low'
+    importance: 'high'
   },
   
   schedule: {
     quietHoursEnabled: false,
     quietHoursStart: '22:00',
-    quietHoursEnd: '07:00',
-    daysEnabled: {
-      monday: true,
-      tuesday: true,
-      wednesday: true,
-      thursday: true,
-      friday: true,
-      saturday: true,
-      sunday: true
-    }
+    quietHoursEnd: '7:00',
+    activeDays: [0, 1, 2, 3, 4, 5, 6]
   },
   
   collectionStatusChanges: true,
-  personnelLocationUpdates: true,
-  deliveryStatusUpdates: true,
-  locationUpdates: true,
-  routeChanges: true,
-  collectionUpdates: true,
   achievementNotifications: true,
   questNotifications: true,
   creditUpdates: true,
-  communityEvents: true
+  communityEvents: true,
+  
+  vibrationEnabled: true,
+  soundEnabled: true,
+  lastUpdated: Date.now()
 };
 
-class NotificationService {
+export class NotificationService {
   private static instance: NotificationService;
   private isInitialized: boolean = false;
-  private preferences: NotificationPreferences = DEFAULT_PREFERENCES;
+  private preferences: NotificationPreferences | null = null;
   private pushToken: string | null = null;
   private notificationListener: any = null;
   private responseListener: any = null;
@@ -113,46 +106,24 @@ class NotificationService {
   public async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
-    // Load saved preferences
-    await this.loadPreferences();
-    
-    // Request permissions
-    if (this.preferences.pushNotificationsEnabled) {
-      await this.requestPermissions();
+    try {
+      // Load preferences
+      await this.loadPreferences();
+      
+      // Register for push notifications if enabled
+      if (this.preferences?.pushNotificationsEnabled) {
+        await this.registerForPushNotifications();
+      }
+      
+      // Configure notification handler
+      this.configureNotificationHandler();
+      
+      this.isInitialized = true;
+      console.log('NotificationService initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize NotificationService:', error);
+      throw error;
     }
-    
-    // Configure notifications
-    Notifications.setNotificationHandler({
-      handleNotification: async () => {
-        // Check if in quiet hours
-        if (this.preferences.schedule.quietHoursEnabled && this.isInQuietHours()) {
-          return {
-            shouldShowAlert: false,
-            shouldPlaySound: false,
-            shouldSetBadge: false,
-          };
-        }
-        
-        return {
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        };
-      },
-    });
-    
-    // Register for push notifications
-    if (this.preferences.pushNotificationsEnabled) {
-      await this.registerForPushNotifications();
-    }
-    
-    // Set up notification listeners
-    this.setupNotificationListeners();
-    
-    // Set up real-time notifications from WebSocket
-    this.setupRealTimeNotifications();
-    
-    this.isInitialized = true;
   }
   
   /**
@@ -160,17 +131,18 @@ class NotificationService {
    */
   private async loadPreferences(): Promise<void> {
     try {
-      const savedPrefs = await AsyncStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
-      if (savedPrefs) {
-        this.preferences = { ...DEFAULT_PREFERENCES, ...JSON.parse(savedPrefs) };
-      }
+      const preferencesJson = await AsyncStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
       
-      const savedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
-      if (savedToken) {
-        this.pushToken = savedToken;
+      if (preferencesJson) {
+        this.preferences = JSON.parse(preferencesJson) as NotificationPreferences;
+      } else {
+        // Use default preferences
+        this.preferences = DEFAULT_NOTIFICATION_PREFERENCES;
+        await this.savePreferences();
       }
     } catch (error) {
       console.error('Error loading notification preferences:', error);
+      this.preferences = DEFAULT_NOTIFICATION_PREFERENCES;
     }
   }
   
@@ -178,13 +150,20 @@ class NotificationService {
    * Save notification preferences to storage
    */
   private async savePreferences(): Promise<void> {
+    if (!this.preferences) return;
+    
     try {
+      // Update last updated timestamp
+      this.preferences.lastUpdated = Date.now();
+      
+      // Save to AsyncStorage
       await AsyncStorage.setItem(
         NOTIFICATION_PREFERENCES_KEY,
         JSON.stringify(this.preferences)
       );
     } catch (error) {
       console.error('Error saving notification preferences:', error);
+      throw error;
     }
   }
   
@@ -192,28 +171,27 @@ class NotificationService {
    * Get current notification preferences
    */
   public getPreferences(): NotificationPreferences {
-    return { ...this.preferences };
+    if (!this.preferences) {
+      return DEFAULT_NOTIFICATION_PREFERENCES;
+    }
+    return this.preferences;
   }
   
   /**
    * Update notification preferences
    */
-  public async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<void> {
-    this.preferences = { ...this.preferences, ...preferences };
-    
-    // If push notifications were toggled, handle that change
-    if (preferences.pushNotificationsEnabled !== undefined) {
-      if (preferences.pushNotificationsEnabled) {
-        await this.registerForPushNotifications();
-      }
-    }
-    
-    // Save updated preferences
+  public async updatePreferences(newPreferences: NotificationPreferences): Promise<void> {
+    this.preferences = newPreferences;
     await this.savePreferences();
     
-    // Update server with new preferences if we have a token
-    if (this.pushToken) {
-      await this.updateServerPreferences();
+    // If push notification preference changed, update registration
+    if (newPreferences.pushNotificationsEnabled) {
+      await this.registerForPushNotifications();
+    }
+    
+    // Update Android channels if needed
+    if (Platform.OS === 'android') {
+      await this.setupAndroidNotificationChannels();
     }
   }
   
@@ -221,50 +199,35 @@ class NotificationService {
    * Check if current time is in quiet hours
    */
   private isInQuietHours(): boolean {
-    if (!this.preferences.schedule.quietHoursEnabled) {
-      return false;
-    }
+    if (!this.preferences) return false;
     
+    const schedule = this.preferences.schedule;
+    if (!schedule.quietHoursEnabled) return false;
+    
+    // Check if today is an active day
+    const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+    if (!schedule.activeDays.includes(today)) return false;
+    
+    // Parse quiet hours times
     const now = new Date();
-    const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
-    // Check if the current day is enabled
-    const dayEnabled = this.isDayEnabled(day);
-    if (!dayEnabled) {
-      return false;
-    }
-    
-    // Parse quiet hours
-    const [startHour, startMinute] = this.preferences.schedule.quietHoursStart.split(':').map(Number);
-    const [endHour, endMinute] = this.preferences.schedule.quietHoursEnd.split(':').map(Number);
-    
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
+    
+    const [startHour, startMinute] = schedule.quietHoursStart.split(':').map(Number);
+    const [endHour, endMinute] = schedule.quietHoursEnd.split(':').map(Number);
     
     // Convert to minutes for easier comparison
     const currentTimeMinutes = currentHour * 60 + currentMinute;
     const startTimeMinutes = startHour * 60 + startMinute;
     const endTimeMinutes = endHour * 60 + endMinute;
     
-    // Check if current time is in quiet hours
-    if (startTimeMinutes < endTimeMinutes) {
-      // Simple case: start and end on the same day
-      return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
-    } else {
-      // Complex case: quiet hours span midnight
+    // Handle case where quiet hours span midnight
+    if (startTimeMinutes > endTimeMinutes) {
       return currentTimeMinutes >= startTimeMinutes || currentTimeMinutes <= endTimeMinutes;
     }
-  }
-  
-  /**
-   * Check if the current day is enabled for notifications
-   */
-  private isDayEnabled(day: number): boolean {
-    const dayMap = [
-      'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
-    ];
     
-    return this.preferences.schedule.daysEnabled[dayMap[day]];
+    // Normal case
+    return currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
   }
   
   /**
@@ -321,61 +284,150 @@ class NotificationService {
   /**
    * Register for push notifications
    */
-  private async registerForPushNotifications(): Promise<void> {
+  private async registerForPushNotifications(): Promise<string | null> {
     if (!Device.isDevice) {
-      console.log('Push notifications are not supported in the emulator');
-      return;
+      console.log('Push notifications are not available on emulator');
+      return null;
     }
-    
+
     try {
-      const permissionGranted = await this.requestPermissions();
-      if (!permissionGranted) return;
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
       
-      // Get push token
-      const tokenData = await Notifications.getDevicePushTokenAsync();
-      this.pushToken = tokenData.data;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
       
-      // Save token
-      await AsyncStorage.setItem(PUSH_TOKEN_KEY, this.pushToken);
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return null;
+      }
       
-      // Register token with server
-      await this.registerTokenWithServer();
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      this.pushToken = token;
+      
+      // Save token to storage
+      await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+      
+      if (Platform.OS === 'android') {
+        await this.setupAndroidNotificationChannels();
+      }
+      
+      return token;
     } catch (error) {
       console.error('Error registering for push notifications:', error);
+      return null;
     }
   }
   
   /**
-   * Register token with server
+   * Setup Android notification channels
    */
-  private async registerTokenWithServer(): Promise<void> {
-    if (!this.pushToken) return;
+  private async setupAndroidNotificationChannels(): Promise<void> {
+    if (Platform.OS !== 'android') return;
     
-    try {
-      await ApiService.getInstance().post('/notifications/register-device', {
-        token: this.pushToken,
-        platform: Platform.OS,
-        preferences: this.preferences
+    // Create channel for each category with appropriate importance
+    for (const category of Object.values(NotificationCategory)) {
+      const categoryPrefs = this.preferences?.[category];
+      if (!categoryPrefs) continue;
+      
+      await Notifications.setNotificationChannelAsync(category, {
+        name: this.getCategoryDisplayName(category),
+        importance: this.getImportanceLevel(categoryPrefs.importance),
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
       });
-    } catch (error) {
-      console.error('Error registering token with server:', error);
     }
   }
   
   /**
-   * Update server with new preferences
+   * Get category display name
    */
-  private async updateServerPreferences(): Promise<void> {
-    if (!this.pushToken) return;
-    
-    try {
-      await ApiService.getInstance().post('/notifications/update-preferences', {
-        token: this.pushToken,
-        preferences: this.preferences
-      });
-    } catch (error) {
-      console.error('Error updating server preferences:', error);
+  private getCategoryDisplayName(category: NotificationCategory): string {
+    switch (category) {
+      case NotificationCategory.COLLECTION:
+        return 'Collection Notifications';
+      case NotificationCategory.DELIVERY:
+        return 'Delivery Notifications';
+      case NotificationCategory.REWARDS:
+        return 'Rewards Notifications';
+      case NotificationCategory.COMMUNITY:
+        return 'Community Notifications';
+      case NotificationCategory.SYSTEM:
+        return 'System Notifications';
+      default:
+        return 'Notifications';
     }
+  }
+  
+  /**
+   * Get Android notification importance level
+   */
+  private getImportanceLevel(importance: string): Notifications.AndroidImportance {
+    switch (importance) {
+      case 'high':
+        return Notifications.AndroidImportance.HIGH;
+      case 'medium':
+        return Notifications.AndroidImportance.DEFAULT;
+      case 'low':
+        return Notifications.AndroidImportance.LOW;
+      default:
+        return Notifications.AndroidImportance.DEFAULT;
+    }
+  }
+  
+  /**
+   * Configure notification handler
+   */
+  private configureNotificationHandler(): void {
+    // Set notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        const category = notification.request.content.data?.category as NotificationCategory || NotificationCategory.SYSTEM;
+        const shouldShowAlert = this.shouldShowNotification(category);
+        
+        // Add notification to history
+        const notificationData: Notification = {
+          id: notification.request.identifier,
+          title: notification.request.content.title || '',
+          body: notification.request.content.body || '',
+          category: category,
+          read: false,
+          createdAt: new Date().toISOString(),
+          data: notification.request.content.data as Record<string, any> || {},
+        };
+        
+        await this.addNotificationToHistory(notificationData);
+        
+        return {
+          shouldShowAlert,
+          shouldPlaySound: shouldShowAlert && this.preferences?.soundEnabled || false,
+          shouldSetBadge: true,
+        };
+      },
+    });
+  }
+  
+  /**
+   * Check if notification should be shown based on preferences and quiet hours
+   */
+  private shouldShowNotification(category: NotificationCategory): boolean {
+    if (!this.preferences) return true;
+    
+    // Check if notifications are enabled globally
+    if (!this.preferences.allNotificationsEnabled) return false;
+    
+    // Check if category is enabled
+    const categoryPrefs = this.preferences[category];
+    if (!categoryPrefs?.enabled) return false;
+    
+    // Check quiet hours
+    if (this.preferences.schedule.quietHoursEnabled && this.isInQuietHours()) {
+      return false;
+    }
+    
+    return true;
   }
   
   /**
@@ -401,23 +453,20 @@ class NotificationService {
    */
   private async addNotificationToHistory(notification: Notifications.Notification): Promise<void> {
     try {
-      const data = notification.request.content.data || {};
-      const title = notification.request.content.title || '';
-      const body = notification.request.content.body || '';
+      const notificationData = notification.request.content.data || {};
+      const category = notificationData.category || NotificationCategory.SYSTEM;
       
-      const historyItem = {
+      const historyItem: Notification = {
         id: notification.request.identifier,
-        type: data.type || 'general',
-        category: data.category || NotificationCategory.SYSTEM,
-        title,
-        body,
-        timestamp: new Date(),
+        title: notification.request.content.title || '',
+        body: notification.request.content.body || '',
+        category,
         read: false,
-        data
+        createdAt: new Date().toISOString(),
+        data: notificationData
       };
       
-      // Send to server to store in history
-      await ApiService.getInstance().post('/notifications/history', historyItem);
+      await this.addNotificationToHistoryInternal(historyItem);
     } catch (error) {
       console.error('Error adding notification to history:', error);
     }
@@ -880,6 +929,131 @@ class NotificationService {
     
     if (this.responseListener) {
       Notifications.removeNotificationSubscription(this.responseListener);
+    }
+  }
+
+  /**
+   * Get notification history
+   */
+  public async getNotificationHistory(): Promise<Notification[]> {
+    try {
+      const historyJson = await AsyncStorage.getItem(NOTIFICATION_HISTORY_KEY);
+      if (!historyJson) return [];
+      
+      const history = JSON.parse(historyJson) as Notification[];
+      return history.sort((a, b) => {
+        const aTime = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt;
+        const bTime = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt;
+        return bTime - aTime; // Sort newest first
+      });
+    } catch (error) {
+      console.error('Error getting notification history:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Mark a notification as read
+   */
+  public async markNotificationAsRead(notificationId: string): Promise<boolean> {
+    try {
+      const history = await this.getNotificationHistory();
+      const updatedHistory = history.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, read: true } 
+          : notification
+      );
+      
+      await AsyncStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(updatedHistory));
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Mark all notifications as read
+   */
+  public async markAllNotificationsAsRead(): Promise<boolean> {
+    try {
+      const history = await this.getNotificationHistory();
+      const updatedHistory = history.map(notification => ({ ...notification, read: true }));
+      
+      await AsyncStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(updatedHistory));
+      return true;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Delete a notification
+   */
+  public async deleteNotification(notificationId: string): Promise<boolean> {
+    try {
+      const history = await this.getNotificationHistory();
+      const updatedHistory = history.filter(notification => notification.id !== notificationId);
+      
+      await AsyncStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(updatedHistory));
+      return true;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Clear all notifications
+   */
+  public async clearAllNotifications(): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify([]));
+      return true;
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get unread notification count
+   */
+  public async getUnreadCount(): Promise<number> {
+    try {
+      const history = await this.getNotificationHistory();
+      return history.filter(notification => !notification.read).length;
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Add notification to history when received
+   * This method should be called whenever a notification is displayed
+   */
+  private async addNotificationToHistoryInternal(notification: Notification): Promise<void> {
+    try {
+      const history = await this.getNotificationHistory();
+      
+      // Check if notification with same ID already exists
+      const exists = history.some(n => n.id === notification.id);
+      if (exists) return;
+      
+      // Add to history
+      const updatedHistory = [notification, ...history];
+      
+      // Limit history size
+      const MAX_HISTORY_SIZE = 100;
+      if (updatedHistory.length > MAX_HISTORY_SIZE) {
+        updatedHistory.splice(MAX_HISTORY_SIZE);
+      }
+      
+      await AsyncStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Error adding notification to history:', error);
     }
   }
 }

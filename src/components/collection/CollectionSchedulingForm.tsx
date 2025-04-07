@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { StepIndicator } from '@/components/ui/StepIndicator';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { collectionService } from '@/services/CollectionService';
-import { CollectionLocation, CollectionMaterials, TimeSlot } from '@/types/Collection';
-import { useRouter } from 'expo-router';
+import { CollectionLocation, CollectionMaterials } from '@/types/Collection';
+import { TimeSlot } from '@/types/collections';
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 
@@ -27,7 +28,7 @@ interface CollectionSchedulingFormProps {
 }
 
 export function CollectionSchedulingForm({ onSuccess }: CollectionSchedulingFormProps) {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(0);
   const [materials, setMaterials] = useState<CollectionMaterials[]>([]);
   const [estimatedWeight, setEstimatedWeight] = useState(0);

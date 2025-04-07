@@ -6,20 +6,20 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import useNetworkStatus from '@/hooks/useNetworkStatus';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,7 +40,17 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
   // Get auth context
-  const { signIn, isLoading, error: authError, clearError } = useAuth();
+  const { 
+    signIn, 
+    signInWithGoogle, 
+    signInWithApple, 
+    signInWithFacebook, 
+    authenticateWithBiometric,
+    isBiometricEnabled, 
+    isLoading, 
+    error: authError, 
+    clearError 
+  } = useAuth();
   
   // Get network status
   const { isOnline } = useNetworkStatus();
@@ -122,6 +132,72 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     }
   };
   
+  // Handle biometric authentication
+  const handleBiometricLogin = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Offline Mode',
+        'You need an internet connection to log in. Please check your connection and try again.'
+      );
+      return;
+    }
+    
+    try {
+      await authenticateWithBiometric();
+    } catch (error) {
+      console.error('Biometric login error:', error);
+    }
+  };
+  
+  // Handle social logins
+  const handleGoogleLogin = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Offline Mode',
+        'You need an internet connection to log in. Please check your connection and try again.'
+      );
+      return;
+    }
+    
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+  
+  const handleAppleLogin = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Offline Mode',
+        'You need an internet connection to log in. Please check your connection and try again.'
+      );
+      return;
+    }
+    
+    try {
+      await signInWithApple();
+    } catch (error) {
+      console.error('Apple login error:', error);
+    }
+  };
+  
+  const handleFacebookLogin = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Offline Mode',
+        'You need an internet connection to log in. Please check your connection and try again.'
+      );
+      return;
+    }
+    
+    try {
+      await signInWithFacebook();
+    } catch (error) {
+      console.error('Facebook login error:', error);
+    }
+  };
+  
   // Navigate to signup
   const handleSignup = () => {
     navigation.navigate('Signup');
@@ -198,11 +274,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   autoComplete="email"
-                  returnKeyType="next"
+                  testID="email-input"
                 />
               </View>
               {formErrors.email && (
-                <Text style={styles.errorMessage}>{formErrors.email}</Text>
+                <Text style={styles.errorText}>{formErrors.email}</Text>
               )}
             </View>
             
@@ -223,12 +299,13 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                   placeholder="Enter your password"
                   placeholderTextColor="#8E8E93"
                   secureTextEntry={secureTextEntry}
+                  autoCapitalize="none"
                   autoComplete="password"
-                  returnKeyType="done"
+                  testID="password-input"
                 />
                 <TouchableOpacity
-                  style={styles.visibilityButton}
                   onPress={() => setSecureTextEntry(!secureTextEntry)}
+                  style={styles.eyeIcon}
                 >
                   <Ionicons
                     name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
@@ -238,38 +315,91 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 </TouchableOpacity>
               </View>
               {formErrors.password && (
-                <Text style={styles.errorMessage}>{formErrors.password}</Text>
+                <Text style={styles.errorText}>{formErrors.password}</Text>
               )}
             </View>
             
-            {/* Forgot Password Link */}
+            {/* Forgot Password */}
             <TouchableOpacity
-              style={styles.forgotButton}
+              style={styles.forgotPasswordContainer}
               onPress={handleForgotPassword}
+              testID="forgot-password-button"
             >
-              <Text style={styles.forgotText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
             
             {/* Login Button */}
             <TouchableOpacity
-              style={[styles.loginButton, (!isOnline || isLoading) && styles.loginButtonDisabled]}
+              style={styles.loginButton}
               onPress={handleLogin}
-              disabled={!isOnline || isLoading}
+              disabled={isLoading}
+              testID="login-button"
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Text style={styles.loginButtonText}>Login</Text>
               )}
             </TouchableOpacity>
             
-            {/* Sign Up Link */}
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account?</Text>
-              <TouchableOpacity onPress={handleSignup}>
-                <Text style={styles.signupLink}>Sign Up</Text>
+            {/* Biometric Login */}
+            {isBiometricEnabled && (
+              <TouchableOpacity
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+                testID="biometric-button"
+              >
+                <Ionicons name="finger-print" size={24} color="#34C759" />
+                <Text style={styles.biometricText}>Login with biometrics</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.divider} />
+            </View>
+            
+            {/* Social Login Buttons */}
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton]}
+                onPress={handleGoogleLogin}
+                testID="google-button"
+              >
+                <FontAwesome name="google" size={20} color="#FFFFFF" />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </TouchableOpacity>
+              
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={handleAppleLogin}
+                  testID="apple-button"
+                >
+                  <FontAwesome name="apple" size={20} color="#FFFFFF" />
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity
+                style={[styles.socialButton, styles.facebookButton]}
+                onPress={handleFacebookLogin}
+                testID="facebook-button"
+              >
+                <FontAwesome name="facebook" size={20} color="#FFFFFF" />
+                <Text style={styles.socialButtonText}>Facebook</Text>
               </TouchableOpacity>
             </View>
+          </View>
+          
+          {/* Signup Link */}
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>Don't have an account?</Text>
+            <TouchableOpacity onPress={handleSignup} testID="signup-link">
+              <Text style={styles.signupLink}>Sign Up</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -280,82 +410,81 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   container: {
-    flex: 1
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 40
+    paddingBottom: 24,
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 40
+    marginTop: 20,
+    marginBottom: 32,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 20,
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 16,
+    borderRadius: 60,
+    backgroundColor: '#F0FFF0',
   },
   logo: {
     width: 80,
-    height: 80
+    height: 80,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#34C759',
-    marginBottom: 8
+    color: '#2C3E50',
+    marginBottom: 8,
   },
   subtitleText: {
     fontSize: 16,
-    color: '#8E8E93'
+    color: '#7F8C8D',
+    marginBottom: 8,
   },
   formContainer: {
-    width: '100%'
+    paddingHorizontal: 24,
   },
   offlineWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF9500',
-    borderRadius: 8,
+    backgroundColor: '#F39C12',
     padding: 12,
-    marginBottom: 16
+    borderRadius: 8,
+    marginBottom: 16,
   },
   offlineText: {
     color: '#FFFFFF',
-    fontSize: 14,
     marginLeft: 8,
-    flex: 1
+    flex: 1,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
+    backgroundColor: '#E74C3C',
     padding: 12,
-    marginBottom: 16
+    borderRadius: 8,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginLeft: 8,
-    flex: 1
+    color: '#E74C3C',
+    fontSize: 12,
+    marginTop: 4,
   },
   inputGroup: {
-    marginBottom: 20
+    marginBottom: 16,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginBottom: 8
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#34495E',
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -364,63 +493,114 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5EA',
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 50
+    height: 50,
+    backgroundColor: '#F8F8F8',
   },
   inputError: {
-    borderColor: '#FF3B30'
+    borderColor: '#E74C3C',
   },
   input: {
     flex: 1,
-    height: '100%',
+    marginLeft: 8,
     fontSize: 16,
-    color: '#000000',
-    paddingHorizontal: 8
+    color: '#2C3E50',
   },
-  visibilityButton: {
-    padding: 8
+  eyeIcon: {
+    padding: 4,
   },
-  errorMessage: {
-    color: '#FF3B30',
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    color: '#34C759',
     fontSize: 14,
-    marginTop: 4
-  },
-  forgotButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20
-  },
-  forgotText: {
-    fontSize: 14,
-    color: '#2C76E5'
+    fontWeight: '600',
   },
   loginButton: {
     backgroundColor: '#34C759',
-    borderRadius: 8,
     height: 50,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#8E8E93'
+    marginBottom: 16,
   },
   loginButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF'
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    marginBottom: 24,
+  },
+  biometricText: {
+    color: '#34C759',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5EA',
+  },
+  dividerText: {
+    color: '#8E8E93',
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  socialButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  googleButton: {
+    backgroundColor: '#DB4437',
+  },
+  appleButton: {
+    backgroundColor: '#000000',
+  },
+  facebookButton: {
+    backgroundColor: '#4267B2',
+  },
+  socialButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
+    marginTop: 16,
   },
   signupText: {
+    color: '#7F8C8D',
     fontSize: 14,
-    color: '#8E8E93'
   },
   signupLink: {
+    color: '#34C759',
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2C76E5',
-    marginLeft: 4
-  }
+    fontWeight: '600',
+    marginLeft: 4,
+  },
 }); 

@@ -1,8 +1,8 @@
-import { useTheme } from '@/hooks/useTheme';
+import MapView, { Marker, Polyline } from '@/components/ui/MapViewAdapter';
+import { useTheme } from '@/theme';
 import { Location } from '@/utils/RouteOptimization';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import { ThemedText } from '../ui/ThemedText';
 import { ThemedView } from '../ui/ThemedView';
 
@@ -39,7 +39,7 @@ interface Coordinate {
 }
 
 export function RouteVisualization({ route, style }: RouteVisualizationProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   // Calculate map region to fit all waypoints
   const region = React.useMemo(() => {

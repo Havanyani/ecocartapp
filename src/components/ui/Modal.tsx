@@ -1,15 +1,15 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect } from 'react';
 import {
-  Animated,
-  BackHandler,
-  Pressable,
-  Modal as RNModal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  ViewStyle,
+    Animated,
+    BackHandler,
+    Pressable,
+    Modal as RNModal,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './Text';
@@ -33,7 +33,7 @@ export function Modal({
   closeOnBackdropPress = true,
   contentStyle,
 }: ModalProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(100)).current;
@@ -96,7 +96,7 @@ export function Modal({
         style={[
           styles.backdrop,
           {
-            backgroundColor: theme.colors.black + '80',
+            backgroundColor: theme.theme.colors.black + '80',
             opacity: fadeAnim,
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
@@ -111,8 +111,8 @@ export function Modal({
           style={[
             styles.content,
             {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
+              backgroundColor: theme.theme.colors.card,
+              borderColor: theme.theme.colors.border,
               transform: [{ translateY: slideAnim }],
             },
             contentStyle,
@@ -127,7 +127,7 @@ export function Modal({
               )}
               {showCloseButton && (
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={theme.colors.text.primary} />
+                  <Ionicons name="close" size={24} color={theme.theme.colors.text} />
                 </TouchableOpacity>
               )}
             </View>

@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { useAIAssistant } from '@/providers/AIAssistantProvider';
 import { AIMessage } from '@/services/ai/AIAssistantService';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -30,7 +30,7 @@ export function AIAssistantChat({
   maxHeight = '80%',
   onClose
 }: AIAssistantChatProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { 
     messages, 
     isProcessing, 
@@ -105,7 +105,7 @@ export function AIAssistantChat({
           isUserMessage ? styles.userBubble : styles.aiBubble,
           isUserMessage 
             ? { backgroundColor: theme.colors.primary } 
-            : { backgroundColor: theme.isDark ? '#333333' : '#F1F1F1' },
+            : { backgroundColor: theme.dark ? '#333333' : '#F1F1F1' },
         ]}
         accessibilityRole="text"
         accessibilityLabel={`${isUserMessage ? 'You' : 'Assistant'}: ${item.content}`}
@@ -117,7 +117,7 @@ export function AIAssistantChat({
                 <MaterialCommunityIcons 
                   name="wifi-off" 
                   size={14} 
-                  color={theme.colors.text.secondary} 
+                  color={theme.colors.textSecondary} 
                 />
               </View>
             )}
@@ -127,7 +127,7 @@ export function AIAssistantChat({
                 <MaterialCommunityIcons 
                   name="frequently-asked-questions" 
                   size={14} 
-                  color={theme.colors.text.secondary} 
+                  color={theme.colors.textSecondary} 
                 />
               </View>
             )}
@@ -139,7 +139,7 @@ export function AIAssistantChat({
             styles.messageText,
             isUserMessage 
               ? { color: '#FFFFFF' } 
-              : { color: theme.colors.text.primary }
+              : { color: theme.colors.text }
           ]}
         >
           {item.content}
@@ -161,7 +161,7 @@ export function AIAssistantChat({
             styles.timestampText,
             isUserMessage 
               ? { color: '#FFFFFF' } 
-              : { color: theme.colors.text.secondary }
+              : { color: theme.colors.textSecondary }
           ]}
         >
           {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -178,7 +178,7 @@ export function AIAssistantChat({
       >
         {showHeader && (
           <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
               EcoCart Assistant
             </Text>
             <View style={styles.headerIconsContainer}>
@@ -236,7 +236,7 @@ export function AIAssistantChat({
                   accessibilityLabel="Close assistant"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="close" size={24} color={theme.colors.text.primary} />
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               )}
             </View>
@@ -257,12 +257,12 @@ export function AIAssistantChat({
             {suggestedQuestions.map((question, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.suggestionButton, { backgroundColor: theme.isDark ? '#333333' : '#F1F1F1' }]}
+                style={[styles.suggestionButton, { backgroundColor: theme.dark ? '#333333' : '#F1F1F1' }]}
                 onPress={() => handleSuggestedQuestion(question)}
                 accessibilityLabel={`Suggested question: ${question}`}
                 accessibilityRole="button"
               >
-                <Text style={[styles.suggestionText, { color: theme.colors.text.primary }]}>
+                <Text style={[styles.suggestionText, { color: theme.colors.text }]}>
                   {question}
                 </Text>
               </TouchableOpacity>
@@ -275,10 +275,10 @@ export function AIAssistantChat({
             value={inputText}
             onChangeText={setInputText}
             placeholder={isOffline ? "Ask a basic recycling question..." : "Ask a question..."}
-            placeholderTextColor={theme.colors.text.secondary}
+            placeholderTextColor={theme.colors.textSecondary}
             style={[styles.input, { 
-              color: theme.colors.text.primary, 
-              backgroundColor: theme.isDark ? '#333333' : '#F1F1F1' 
+              color: theme.colors.text, 
+              backgroundColor: theme.dark ? '#333333' : '#F1F1F1' 
             }]}
             multiline
             onSubmitEditing={handleSend}

@@ -1,7 +1,7 @@
 import { HapticButton } from '@/components/HapticButton';
 import { IconSymbol } from '@/components/IconSymbol';
 import { ThemedText } from '@/components/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { FlatList, StyleSheet, ViewStyle } from 'react-native';
 
 interface Category {
@@ -29,7 +29,8 @@ export function CategoryFilter({
   onSelectCategory,
   style,
 }: CategoryFilterProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   const renderCategory = ({ item }: { item: Category }) => (
     <HapticButton
@@ -47,7 +48,7 @@ export function CategoryFilter({
         color={
           selectedCategory === item.id
             ? theme.colors.primary
-            : theme.colors.text.secondary
+            : theme.colors.textSecondary
         }
       />
       <ThemedText

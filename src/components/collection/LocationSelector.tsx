@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/Card';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { CollectionLocation } from '@/types/Collection';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -13,20 +13,20 @@ interface LocationSelectorProps {
 }
 
 export function LocationSelector({ location, onSelectLocation }: LocationSelectorProps) {
-  const router = useRouter();
-  const { theme } = useTheme();
+  const navigation = useNavigation();
+  const theme = useTheme();
 
   return (
     <Card style={styles.container}>
       <ThemedText style={styles.title}>Collection Location</ThemedText>
-      <ThemedText style={styles.subtitle}>
+      <ThemedText style={[styles.subtitle, { color: theme.theme.colors.textSecondary }]}>
         Select where you want your materials to be collected from
       </ThemedText>
       
       {location ? (
         <View style={styles.locationDetails}>
           <View style={styles.locationHeader}>
-            <Ionicons name="location" size={22} color="#2e7d32" />
+            <Ionicons name="location" size={22} color={theme.theme.colors.primary} />
             <ThemedText style={styles.addressType}>{location.type}</ThemedText>
           </View>
           
@@ -38,21 +38,21 @@ export function LocationSelector({ location, onSelectLocation }: LocationSelecto
           </ThemedText>
           
           <TouchableOpacity 
-            style={styles.changeButton}
-            onPress={() => router.push('/profile/addresses')}
+            style={[styles.changeButton, { backgroundColor: `${theme.theme.colors.primary}20` }]}
+            onPress={() => navigation.navigate('Addresses')}
           >
-            <ThemedText style={styles.changeButtonText}>
+            <ThemedText style={[styles.changeButtonText, { color: theme.theme.colors.primary }]}>
               Change Location
             </ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => router.push('/profile/addresses/new')}
+          style={[styles.addButton, { borderColor: theme.theme.colors.border }]}
+          onPress={() => navigation.navigate('AddAddress')}
         >
-          <Ionicons name="add-circle-outline" size={24} color="#2e7d32" />
-          <ThemedText style={styles.addButtonText}>
+          <Ionicons name="add-circle-outline" size={24} color={theme.theme.colors.primary} />
+          <ThemedText style={[styles.addButtonText, { color: theme.theme.colors.primary }]}>
             Add Collection Address
           </ThemedText>
         </TouchableOpacity>
@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#757575',
     marginBottom: 16,
   },
   locationDetails: {
@@ -100,13 +99,11 @@ const styles = StyleSheet.create({
   changeButton: {
     marginTop: 16,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(46, 125, 50, 0.1)',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
   },
   changeButtonText: {
-    color: '#2e7d32',
     fontWeight: '500',
   },
   addButton: {
@@ -116,11 +113,9 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#bdbdbd',
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#2e7d32',
     fontWeight: '500',
     marginLeft: 8,
   },

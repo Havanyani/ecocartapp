@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { TimeFrame } from '@/types/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';

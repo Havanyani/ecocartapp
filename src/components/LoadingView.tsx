@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { ActivityIndicator, StyleSheet, View, ViewStyle } from 'react-native';
 
 interface LoadingViewProps {
@@ -6,7 +6,8 @@ interface LoadingViewProps {
 }
 
 export function LoadingView({ style }: LoadingViewProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   return (
     <View style={[styles.container, style]}>

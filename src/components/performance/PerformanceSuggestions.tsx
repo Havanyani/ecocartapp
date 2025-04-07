@@ -1,5 +1,5 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { performanceOptimizer } from '@/utils/PerformanceOptimizer';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -27,7 +27,7 @@ interface PerformanceSnapshot {
 }
 
 export const PerformanceSuggestions: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
   const [snapshots, setSnapshots] = useState<PerformanceSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);

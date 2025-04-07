@@ -1,9 +1,8 @@
-import { useTheme } from '@/hooks/useTheme';
-import type { Theme } from '@/types/theme';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { ThemedText } from '@/components/ui/ThemedText';
 
 interface SettingsSectionProps {
   title: string;
@@ -11,7 +10,7 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({ title, children }: SettingsSectionProps) {
-  const theme = useTheme() as Theme;
+  const theme = useTheme()()();
 
   return (
     <Animated.View 
@@ -20,7 +19,7 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
     >
       <ThemedText 
         variant="secondary" 
-        style={[styles.sectionTitle, { color: theme.colors.text.secondary }]}
+        style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
       >
         {title}
       </ThemedText>

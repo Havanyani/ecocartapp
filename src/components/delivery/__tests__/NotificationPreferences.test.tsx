@@ -1,5 +1,5 @@
 import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { fireEvent, render } from '@testing-library/react-native';
 import { NotificationPreferences } from '../NotificationPreferences';
 

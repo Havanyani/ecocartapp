@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoCart Test</title>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    #root {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background-color: #f5f5f5;
+    }
+    .test-container {
+      text-align: center;
+      padding: 20px;
+      margin: 20px;
+      border-radius: 8px;
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+    }
+    h1 {
+      color: #2e7d32;
+    }
+    button {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #1b5e20;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="test-container">
+      <h1>EcoCart Static Test</h1>
+      <p>This is a static HTML page to test if the basic web functionality works without Metro bundling.</p>
+      <p>If you can see this page, your web server is working correctly.</p>
+      <button id="testButton">Test Browser Alert</button>
+      <div id="storageTest" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Basic JavaScript test
+    document.getElementById('testButton').addEventListener('click', function() {
+      alert('Button clicked successfully!');
+    });
+
+    // Test localStorage
+    try {
+      // Try to store and retrieve a value
+      localStorage.setItem('ecocart_test', 'Storage test successful: ' + new Date().toLocaleString());
+      const storedValue = localStorage.getItem('ecocart_test');
+      
+      const storageElement = document.getElementById('storageTest');
+      storageElement.innerHTML = `
+        <div style="padding: 10px; background-color: #f0f7ee; border-radius: 4px;">
+          <strong>LocalStorage Test:</strong>
+          <div>${storedValue || 'Failed to retrieve from storage'}</div>
+        </div>
+      `;
+    } catch (error) {
+      document.getElementById('storageTest').innerHTML = `
+        <div style="padding: 10px; background-color: #ffebee; border-radius: 4px;">
+          <strong>LocalStorage Error:</strong>
+          <div>${error.message}</div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html> 

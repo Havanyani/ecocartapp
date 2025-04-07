@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import i18n from '@/utils/i18n';
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';

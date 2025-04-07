@@ -1,15 +1,15 @@
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { useCommunity } from '@/hooks/useCommunity';
+import { Achievement } from '@/services/CommunityService';
+import { useTheme } from '@/theme';
 import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useCommunity } from '../../hooks/useCommunity';
-import { useTheme } from '../../hooks/useTheme';
-import { Achievement } from '../../services/CommunityService';
-import { IconSymbol } from '../ui/IconSymbol';
-import { ThemedText } from '../ui/ThemedText';
-import { ThemedView } from '../ui/ThemedView';
 
 function AchievementItem({ achievement }: { achievement: Achievement }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <ThemedView style={styles.achievementContainer}>
@@ -17,7 +17,7 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
         <IconSymbol
           name={achievement.icon}
           size={24}
-          color={achievement.completed ? theme.colors.primary : theme.colors.text}
+          color={achievement.completed ? theme.theme.colors.primary : theme.theme.colors.text}
         />
       </View>
       <View style={styles.achievementInfo}>
@@ -33,7 +33,7 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
               styles.progressFill,
               {
                 width: `${achievement.progress}%`,
-                backgroundColor: theme.colors.primary,
+                backgroundColor: theme.theme.colors.primary,
               },
             ]}
           />
@@ -48,9 +48,9 @@ function AchievementItem({ achievement }: { achievement: Achievement }) {
   );
 }
 
-export function UserProfile() {
+export function UserProfile({ userId }: { userId: string }) {
   const { profile, achievements, isLoading, error } = useCommunity();
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   if (isLoading) {
     return (
@@ -89,7 +89,7 @@ export function UserProfile() {
               contentFit="cover"
             />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+            <View style={[styles.avatar, { backgroundColor: theme.theme.colors.primary }]}>
               <ThemedText style={styles.avatarText}>
                 {profile.name[0].toUpperCase()}
               </ThemedText>
@@ -104,28 +104,28 @@ export function UserProfile() {
 
       <ThemedView style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <IconSymbol name="collection" size={24} color={theme.colors.primary} />
+          <IconSymbol name="collection" size={24} color={theme.theme.colors.primary} />
           <ThemedText style={styles.statValue}>
             {profile.stats.totalCollections}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Collections</ThemedText>
         </View>
         <View style={styles.statItem}>
-          <IconSymbol name="weight" size={24} color={theme.colors.primary} />
+          <IconSymbol name="weight" size={24} color={theme.theme.colors.primary} />
           <ThemedText style={styles.statValue}>
             {profile.stats.totalWeight}kg
           </ThemedText>
           <ThemedText style={styles.statLabel}>Total Weight</ThemedText>
         </View>
         <View style={styles.statItem}>
-          <IconSymbol name="fire" size={24} color={theme.colors.primary} />
+          <IconSymbol name="fire" size={24} color={theme.theme.colors.primary} />
           <ThemedText style={styles.statValue}>
             {profile.stats.streak}
           </ThemedText>
           <ThemedText style={styles.statLabel}>Day Streak</ThemedText>
         </View>
         <View style={styles.statItem}>
-          <IconSymbol name="trophy" size={24} color={theme.colors.primary} />
+          <IconSymbol name="trophy" size={24} color={theme.theme.colors.primary} />
           <ThemedText style={styles.statValue}>
             #{profile.stats.rank}
           </ThemedText>

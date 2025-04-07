@@ -5,10 +5,10 @@
  * This service handles real-time location sharing, status updates, and collection verifications.
  */
 
-import { CollectionStatus } from '@/app/driver';
+import { CollectionStatus } from '@/types/Collection';
 import { ApiService } from './ApiService';
 import { LocationService } from './LocationService';
-import { NotificationService } from './NotificationService';
+import NotificationService from './NotificationService';
 
 // Location update frequency in milliseconds
 const LOCATION_UPDATE_FREQUENCY = 15000; // 15 seconds

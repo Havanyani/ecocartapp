@@ -1,3 +1,6 @@
+import { Collection } from '@/types/Collection';
+import { CollectionItem } from '@/types/CollectionItem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface DetailedEnvironmentalMetrics {
   plasticReduction: {
@@ -210,6 +213,10 @@ export class EnvironmentalImpactService {
     // Landfill space saved per kg of plastic in cubic meters
     LANDFILL_SPACE_PER_KG: 0.004
   };
+
+  private static HISTORICAL_DATA_KEY = 'environmentalImpactHistory';
+  private static USER_IMPACT_KEY = 'userImpactData';
+  private static COMMUNITY_COMPARISON_KEY = 'communityComparisonData';
 
   static calculateImpact(
     weight: number,
@@ -464,29 +471,45 @@ export class EnvironmentalImpactService {
   }
 
   static async getMetrics(): Promise<DetailedEnvironmentalMetrics> {
-    // TODO: Implement actual API call
-    return {
-      plasticReduction: {
-        totalWeight: 1500,
-        itemsRecycled: 5000,
-        landfillDiverted: 2000,
-      },
-      carbonFootprint: {
-        totalReduction: 2500,
-        treesEquivalent: 100,
-        emissionsAvoided: 5000,
-      },
-      waterConservation: {
-        litersSaved: 100000,
-        householdsImpacted: 500,
-        waterQualityImprovement: 75,
-      },
-      communityImpact: {
-        participationRate: 85,
-        totalHouseholds: 1000,
-        communityPrograms: 5,
-      },
-    };
+    try {
+      // In a real app, this would fetch from an API or calculate from user history
+      // For now, we'll use placeholder data with some randomness
+      
+      // Get the total weight from collections
+      const collectionsData = await EnvironmentalImpactService.getUserCollectionsData();
+      const totalWeight = collectionsData.reduce((sum, collection) => 
+        sum + collection.items.reduce((itemSum, item) => itemSum + item.weight, 0), 0);
+      
+      // Calculate detailed metrics based on the weight
+      const metrics: DetailedEnvironmentalMetrics = {
+        plasticReduction: {
+          totalWeight,
+          itemsRecycled: collectionsData.reduce((sum, collection) => sum + collection.items.length, 0),
+          landfillDiverted: totalWeight * 1.2, // 20% volume increase for landfill space
+        },
+        carbonFootprint: {
+          totalReduction: totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint,
+          treesEquivalent: Math.round((totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint) / EnvironmentalImpactService.CONSTANTS.CO2_PER_TREE_YEAR),
+          emissionsAvoided: totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint * 1.5,
+        },
+        waterConservation: {
+          litersSaved: totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.waterFootprint,
+          householdsImpacted: Math.round((totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.waterFootprint) / 150), // Average household daily usage
+          waterQualityImprovement: 0.05 * totalWeight, // 5% improvement per kg of plastic recycled
+        },
+        communityImpact: {
+          participationRate: 35 + Math.random() * 15, // 35-50% participation
+          totalHouseholds: 500 + Math.floor(Math.random() * 500), // 500-1000 households
+          communityPrograms: 3 + Math.floor(Math.random() * 5), // 3-8 programs
+        },
+      };
+      
+      return metrics;
+    } catch (error) {
+      console.error('Error getting environmental metrics:', error);
+      // Return empty metrics if there's an error
+      return EnvironmentalImpactService.getEmptyMetrics();
+    }
   }
 
   static async getHistoricalData(): Promise<Array<{
@@ -495,66 +518,334 @@ export class EnvironmentalImpactService {
     carbonReduction: number;
     waterSaved: number;
   }>> {
-    // TODO: Implement actual API call
-    return [
-      { date: '2024-01-01', plasticWeight: 100, carbonReduction: 150, waterSaved: 5000 },
-      { date: '2024-01-15', plasticWeight: 150, carbonReduction: 200, waterSaved: 7500 },
-      { date: '2024-02-01', plasticWeight: 200, carbonReduction: 250, waterSaved: 10000 },
-      { date: '2024-02-15', plasticWeight: 250, carbonReduction: 300, waterSaved: 12500 },
-      { date: '2024-03-01', plasticWeight: 300, carbonReduction: 350, waterSaved: 15000 },
-    ];
+    try {
+      // Try to get cached historical data
+      const storedData = await AsyncStorage.getItem(EnvironmentalImpactService.HISTORICAL_DATA_KEY);
+      if (storedData) {
+        return JSON.parse(storedData);
+      }
+      
+      // If no stored data, generate historical data based on collections
+      const collectionsData = await EnvironmentalImpactService.getUserCollectionsData();
+      
+      // Create a map of months to aggregate data
+      const monthlyData = new Map<string, {
+        plasticWeight: number;
+        carbonReduction: number;
+        waterSaved: number;
+      }>();
+      
+      // Get the last 6 months
+      const dates: string[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        date.setDate(1); // Start of the month
+        date.setHours(0, 0, 0, 0);
+        const monthKey = date.toISOString().substring(0, 7); // YYYY-MM format
+        dates.push(monthKey);
+        monthlyData.set(monthKey, {
+          plasticWeight: 0,
+          carbonReduction: 0,
+          waterSaved: 0,
+        });
+      }
+      
+      // Aggregate collection data by month
+      collectionsData.forEach(collection => {
+        const collectionDate = new Date(collection.completedAt || collection.createdAt);
+        const monthKey = collectionDate.toISOString().substring(0, 7);
+        
+        if (monthlyData.has(monthKey)) {
+          const monthData = monthlyData.get(monthKey)!;
+          const weight = collection.items.reduce((sum, item) => sum + item.weight, 0);
+          
+          monthData.plasticWeight += weight;
+          monthData.carbonReduction += weight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint;
+          monthData.waterSaved += weight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.waterFootprint;
+        }
+      });
+      
+      // Convert map to array and add some randomness for demo purposes
+      const result = dates.map(monthKey => {
+        const data = monthlyData.get(monthKey)!;
+        // Add some randomness (in a real app this would be real data)
+        const randomFactor = 0.7 + Math.random() * 0.6; // 0.7-1.3
+        
+        return {
+          date: `${monthKey}-01T00:00:00.000Z`, // First day of month
+          plasticWeight: data.plasticWeight > 0 ? data.plasticWeight : 0.5 + Math.random() * 5 * randomFactor,
+          carbonReduction: data.carbonReduction > 0 ? data.carbonReduction : (0.5 + Math.random() * 5) * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint * randomFactor,
+          waterSaved: data.waterSaved > 0 ? data.waterSaved : (0.5 + Math.random() * 5) * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.waterFootprint * randomFactor,
+        };
+      });
+      
+      // Cache the result
+      await AsyncStorage.setItem(EnvironmentalImpactService.HISTORICAL_DATA_KEY, JSON.stringify(result));
+      
+      return result;
+    } catch (error) {
+      console.error('Error getting historical data:', error);
+      // Return empty data if there's an error
+      return EnvironmentalImpactService.getEmptyHistoricalData();
+    }
   }
 
   /**
-   * Gets the environmental impact data for the user
-   * @param timeRange The time range to get data for ('week', 'month', 'year')
-   * @returns The environmental impact data
+   * Gets user impact data compared to community averages
+   * @param timeframe The timeframe to get data for: 'week', 'month', or 'year'
    */
-  static async getUserImpactData(timeRange: 'week' | 'month' | 'year') {
-    const mockData = {
-      summary: {
-        totalItems: Math.floor(Math.random() * 500) + 100,
-        totalWeight: Math.floor(Math.random() * 200) + 50,
-        co2Saved: Math.floor(Math.random() * 100) + 20,
-        waterSaved: Math.floor(Math.random() * 1000) + 200
-      },
-      trends: {
-        week: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: {
-            weight: Array.from({ length: 7 }, () => Math.floor(Math.random() * 10) + 1),
-            items: Array.from({ length: 7 }, () => Math.floor(Math.random() * 20) + 5),
-            co2: Array.from({ length: 7 }, () => Math.floor(Math.random() * 5) + 1),
-            water: Array.from({ length: 7 }, () => Math.floor(Math.random() * 50) + 10)
-          }
+  static async getUserImpactData(timeframe: 'week' | 'month' | 'year' = 'month'): Promise<{
+    user: {
+      plasticCollected: number;
+      co2Reduced: number;
+      waterSaved: number;
+    };
+    localAverage: {
+      plasticCollected: number;
+      co2Reduced: number;
+      waterSaved: number;
+    };
+    nationalAverage: {
+      plasticCollected: number;
+      co2Reduced: number;
+      waterSaved: number;
+    };
+    topPerformers: {
+      plasticCollected: number;
+      co2Reduced: number;
+      waterSaved: number;
+    };
+  }> {
+    try {
+      // Try to get cached comparison data
+      const storedData = await AsyncStorage.getItem(`${EnvironmentalImpactService.COMMUNITY_COMPARISON_KEY}_${timeframe}`);
+      if (storedData) {
+        return JSON.parse(storedData);
+      }
+      
+      // Get user's collections for the given timeframe
+      const collectionsData = await EnvironmentalImpactService.getUserCollectionsData(timeframe);
+      
+      // Calculate user metrics
+      const totalWeight = collectionsData.reduce((sum, collection) => 
+        sum + collection.items.reduce((itemSum, item) => itemSum + item.weight, 0), 0);
+      
+      const userMetrics = {
+        plasticCollected: totalWeight,
+        co2Reduced: totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.carbonFootprint,
+        waterSaved: totalWeight * EnvironmentalImpactService.PLASTIC_PROPERTIES.PET.waterFootprint,
+      };
+      
+      // In a real app, these would come from an API
+      // For demo purposes, we'll create realistic comparison data based on the user's data
+      
+      // Local average is typically lower than active users
+      const localAverageFactor = 0.6 + Math.random() * 0.3; // 0.6-0.9x of user's impact
+      
+      // National average is typically lower than local average
+      const nationalAverageFactor = 0.4 + Math.random() * 0.3; // 0.4-0.7x of user's impact
+      
+      // Top performers are significantly higher than average users
+      const topPerformersFactor = 1.5 + Math.random() * 1.0; // 1.5-2.5x of user's impact
+      
+      const comparisonData = {
+        user: userMetrics,
+        localAverage: {
+          plasticCollected: Math.max(0.5, userMetrics.plasticCollected * localAverageFactor),
+          co2Reduced: Math.max(0.5, userMetrics.co2Reduced * localAverageFactor),
+          waterSaved: Math.max(100, userMetrics.waterSaved * localAverageFactor),
         },
-        month: {
-          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-          datasets: {
-            weight: Array.from({ length: 4 }, () => Math.floor(Math.random() * 40) + 10),
-            items: Array.from({ length: 4 }, () => Math.floor(Math.random() * 80) + 20),
-            co2: Array.from({ length: 4 }, () => Math.floor(Math.random() * 20) + 5),
-            water: Array.from({ length: 4 }, () => Math.floor(Math.random() * 200) + 50)
-          }
+        nationalAverage: {
+          plasticCollected: Math.max(0.3, userMetrics.plasticCollected * nationalAverageFactor),
+          co2Reduced: Math.max(0.3, userMetrics.co2Reduced * nationalAverageFactor),
+          waterSaved: Math.max(50, userMetrics.waterSaved * nationalAverageFactor),
         },
-        year: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          datasets: {
-            weight: Array.from({ length: 6 }, () => Math.floor(Math.random() * 100) + 30),
-            items: Array.from({ length: 6 }, () => Math.floor(Math.random() * 200) + 50),
-            co2: Array.from({ length: 6 }, () => Math.floor(Math.random() * 50) + 10),
-            water: Array.from({ length: 6 }, () => Math.floor(Math.random() * 500) + 100)
-          }
+        topPerformers: {
+          plasticCollected: userMetrics.plasticCollected * topPerformersFactor,
+          co2Reduced: userMetrics.co2Reduced * topPerformersFactor,
+          waterSaved: userMetrics.waterSaved * topPerformersFactor,
+        },
+      };
+      
+      // Cache the result
+      await AsyncStorage.setItem(`${EnvironmentalImpactService.COMMUNITY_COMPARISON_KEY}_${timeframe}`, JSON.stringify(comparisonData));
+      
+      return comparisonData;
+    } catch (error) {
+      console.error('Error getting user impact comparison data:', error);
+      // Return placeholder data if there's an error
+      return EnvironmentalImpactService.getEmptyComparisonData();
+    }
+  }
+
+  /**
+   * Gets user collections data for impact calculations
+   * @param timeframe Optional timeframe to filter collections: 'week', 'month', or 'year'
+   */
+  private static async getUserCollectionsData(timeframe?: 'week' | 'month' | 'year'): Promise<Collection[]> {
+    try {
+      // In a real app, this would come from a CollectionService or API
+      // For demo purposes, we'll use placeholder data
+      const collectionsJson = await AsyncStorage.getItem('user_collections');
+      let collections: Collection[] = collectionsJson ? JSON.parse(collectionsJson) : [];
+      
+      // If collections are empty, return placeholder data
+      if (collections.length === 0) {
+        collections = EnvironmentalImpactService.getPlaceholderCollections();
+      }
+      
+      // Filter by timeframe if specified
+      if (timeframe) {
+        const now = new Date();
+        let startDate: Date;
+        
+        switch (timeframe) {
+          case 'week':
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case 'month':
+            startDate = new Date(now);
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+          case 'year':
+            startDate = new Date(now);
+            startDate.setFullYear(now.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(0); // Beginning of time
         }
-      },
-      materials: [
-        { name: 'Plastic', count: Math.floor(Math.random() * 300) + 50, weight: Math.floor(Math.random() * 100) + 20 },
-        { name: 'Paper', count: Math.floor(Math.random() * 200) + 30, weight: Math.floor(Math.random() * 50) + 10 },
-        { name: 'Glass', count: Math.floor(Math.random() * 100) + 20, weight: Math.floor(Math.random() * 150) + 30 },
-        { name: 'Metal', count: Math.floor(Math.random() * 50) + 10, weight: Math.floor(Math.random() * 80) + 15 }
-      ]
+        
+        return collections.filter(collection => {
+          const collectionDate = new Date(collection.completedAt || collection.createdAt);
+          return collectionDate >= startDate && collectionDate <= now;
+        });
+      }
+      
+      return collections;
+    } catch (error) {
+      console.error('Error fetching user collections:', error);
+      return EnvironmentalImpactService.getPlaceholderCollections();
+    }
+  }
+
+  /**
+   * Returns placeholder collection data for demo purposes
+   */
+  private static getPlaceholderCollections(): Collection[] {
+    const generateRandomItems = (count: number, minWeight: number, maxWeight: number): CollectionItem[] => {
+      return Array(count).fill(0).map((_, index) => ({
+        id: `item-${index}`,
+        materialId: ['PET', 'HDPE', 'LDPE', 'PP', 'PS'][Math.floor(Math.random() * 5)],
+        weight: minWeight + Math.random() * (maxWeight - minWeight),
+        count: 1 + Math.floor(Math.random() * 5),
+        barcode: `12345${index}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
     };
     
-    return mockData;
+    // Generate collections spread out over the last 6 months
+    const collections: Collection[] = [];
+    for (let i = 0; i < 15; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 180)); // Random date in last 6 months
+      
+      collections.push({
+        id: `coll-${i}`,
+        userId: 'current-user',
+        scheduledDate: date.toISOString(),
+        createdAt: date.toISOString(),
+        completedAt: date.toISOString(),
+        status: 'completed',
+        items: generateRandomItems(2 + Math.floor(Math.random() * 6), 0.1, 2.0),
+      });
+    }
+    
+    return collections;
+  }
+
+  /**
+   * Returns empty metrics for error state
+   */
+  private static getEmptyMetrics(): DetailedEnvironmentalMetrics {
+    return {
+      plasticReduction: {
+        totalWeight: 0,
+        itemsRecycled: 0,
+        landfillDiverted: 0,
+      },
+      carbonFootprint: {
+        totalReduction: 0,
+        treesEquivalent: 0,
+        emissionsAvoided: 0,
+      },
+      waterConservation: {
+        litersSaved: 0,
+        householdsImpacted: 0,
+        waterQualityImprovement: 0,
+      },
+      communityImpact: {
+        participationRate: 0,
+        totalHouseholds: 0,
+        communityPrograms: 0,
+      },
+    };
+  }
+
+  /**
+   * Returns empty historical data for error state
+   */
+  private static getEmptyHistoricalData() {
+    const dates: Array<{
+      date: string;
+      plasticWeight: number;
+      carbonReduction: number;
+      waterSaved: number;
+    }> = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      date.setDate(1);
+      
+      dates.push({
+        date: date.toISOString(),
+        plasticWeight: 0,
+        carbonReduction: 0,
+        waterSaved: 0,
+      });
+    }
+    
+    return dates;
+  }
+
+  /**
+   * Returns empty comparison data for error state
+   */
+  private static getEmptyComparisonData() {
+    return {
+      user: {
+        plasticCollected: 0,
+        co2Reduced: 0,
+        waterSaved: 0,
+      },
+      localAverage: {
+        plasticCollected: 0,
+        co2Reduced: 0,
+        waterSaved: 0,
+      },
+      nationalAverage: {
+        plasticCollected: 0,
+        co2Reduced: 0,
+        waterSaved: 0,
+      },
+      topPerformers: {
+        plasticCollected: 0,
+        co2Reduced: 0,
+        waterSaved: 0,
+      },
+    };
   }
 }

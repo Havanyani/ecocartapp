@@ -6,7 +6,7 @@
  */
 
 import { useStorage } from '@/hooks/useStorage';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import React, { useEffect, useState } from 'react';
@@ -30,7 +30,7 @@ export interface RecyclingTip {
 const CATEGORIES = ['General', 'Plastic', 'Paper', 'Glass', 'Electronics', 'Composting'];
 
 export default function RecyclingTips() {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const storage = useStorage();
   const [tips, setTips] = useState<RecyclingTip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -159,13 +159,13 @@ export default function RecyclingTips() {
   // Render a single tip item
   const renderTipItem = ({ item }: { item: RecyclingTip }) => {
     return (
-      <View style={[styles.tipCard, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.tipCard, { backgroundColor: theme.theme.colors.background }]}>
         <View style={styles.tipHeader}>
-          <Text style={[styles.userName, { color: theme.colors.text.primary }]}>{item.userName}</Text>
-          <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>{formatDate(item.createdAt)}</Text>
+          <Text style={[styles.userName, { color: theme.theme.colors.text }]}>{item.userName}</Text>
+          <Text style={[styles.dateText, { color: theme.theme.colors.textSecondary }]}>{formatDate(item.createdAt)}</Text>
         </View>
         
-        <Text style={[styles.tipText, { color: theme.colors.text.primary }]}>{item.text}</Text>
+        <Text style={[styles.tipText, { color: theme.theme.colors.text }]}>{item.text}</Text>
         
         <View style={styles.tipFooter}>
           <TouchableOpacity
@@ -182,9 +182,9 @@ export default function RecyclingTips() {
             <Ionicons
               name={item.userLiked ? 'heart' : 'heart-outline'}
               size={20}
-              color={item.userLiked ? '#ff6b6b' : theme.colors.text.primary}
+              color={item.userLiked ? '#ff6b6b' : theme.theme.colors.text}
             />
-            <Text style={[styles.likeCount, { color: theme.colors.text.primary }]}>{item.likes}</Text>
+            <Text style={[styles.likeCount, { color: theme.theme.colors.text }]}>{item.likes}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -202,7 +202,7 @@ export default function RecyclingTips() {
             <TouchableOpacity
               style={[
                 styles.categoryButton,
-                selectedCategory === item && { backgroundColor: theme.colors.primary },
+                selectedCategory === item && { backgroundColor: theme.theme.colors.primary },
               ]}
               onPress={() => setSelectedCategory(item)}
             >
@@ -225,20 +225,20 @@ export default function RecyclingTips() {
   
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.text.primary }]}>Loading recycling tips...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.theme.colors.text }]}>Loading recycling tips...</Text>
       </View>
     );
   }
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
       <View style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, { backgroundColor: theme.colors.background, color: theme.colors.text.primary }]}
+          style={[styles.input, { backgroundColor: theme.theme.colors.background, color: theme.theme.colors.text }]}
           placeholder="Share your recycling tip..."
-          placeholderTextColor={theme.colors.text.secondary}
+          placeholderTextColor={theme.theme.colors.textSecondary}
           value={newTipText}
           onChangeText={setNewTipText}
           multiline
@@ -247,7 +247,7 @@ export default function RecyclingTips() {
         {renderCategorySelector()}
         
         <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: theme.colors.primary }]}
+          style={[styles.submitButton, { backgroundColor: theme.theme.colors.primary }]}
           onPress={addTip}
           disabled={isSubmitting || !newTipText.trim()}
         >

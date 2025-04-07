@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { forwardRef } from 'react';
 import {
@@ -36,12 +36,12 @@ export const Input = forwardRef<TextInput, InputProps>(
     },
     ref
   ) => {
-    const { theme } = useTheme();
+    const theme = useTheme();
 
     return (
       <View style={[styles.container, containerStyle]}>
         {label && (
-          <Text variant="caption" style={{ marginBottom: 4 }}>
+          <Text variant="caption" style={{ marginBottom: theme.theme.spacing.xs }}>
             {label}
           </Text>
         )}
@@ -49,8 +49,8 @@ export const Input = forwardRef<TextInput, InputProps>(
           style={[
             styles.inputContainer,
             {
-              borderColor: error ? theme.colors.error : theme.colors.border,
-              backgroundColor: theme.colors.background,
+              borderColor: error ? theme.theme.colors.error : theme.theme.colors.border,
+              backgroundColor: theme.theme.colors.background,
             },
           ]}
         >
@@ -58,7 +58,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             <Ionicons
               name={leftIcon}
               size={20}
-              color={theme.colors.text.secondary}
+              color={theme.theme.colors.textSecondary}
               style={styles.leftIcon}
             />
           )}
@@ -68,25 +68,25 @@ export const Input = forwardRef<TextInput, InputProps>(
             style={[
               styles.input,
               {
-                color: theme.colors.text.primary,
+                color: theme.theme.colors.text,
               },
               inputStyle,
             ]}
-            placeholderTextColor={theme.colors.text.secondary}
+            placeholderTextColor={theme.theme.colors.textSecondary}
           />
           {rightIcon && (
             <TouchableOpacity onPress={onRightIconPress}>
               <Ionicons
                 name={rightIcon}
                 size={20}
-                color={theme.colors.text.secondary}
+                color={theme.theme.colors.textSecondary}
                 style={styles.rightIcon}
               />
             </TouchableOpacity>
           )}
         </View>
         {error && (
-          <Text variant="caption" style={[styles.error, { color: theme.colors.error }]}>
+          <Text variant="caption" style={[styles.error, { color: theme.theme.colors.error }]}>
             {error}
           </Text>
         )}

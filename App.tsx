@@ -1,71 +1,72 @@
-import { ThemeProvider } from '@/hooks/useTheme';
-import MainNavigator from '@/navigation/MainNavigator';
-import LoginScreen from '@/screens/auth/LoginScreen';
-import SplashScreen from '@/screens/SplashScreen';
-import initializePerformanceMonitoring from '@/utils/performance/initializePerformanceMonitoring';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar } from 'expo-status-bar';
+/**
+ * App.tsx
+ * 
+ * Absolutely minimal app with no imports except React.
+ */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-// Create the root stack navigator
-const Stack = createStackNavigator();
+import { Alert, Button, Text, TextInput, View } from 'react-native';
 
 export default function App() {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const [value, setValue] = useState('');
+  const [storedValue, setStoredValue] = useState('');
+
   useEffect(() => {
-    async function prepare() {
-      try {
-        // Initialize performance monitoring
-        await initializePerformanceMonitoring();
-        
-        // Simulate loading resources and checking authentication
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // For demo purposes, automatically authenticate
-        setIsAuthenticated(true);
-        setIsInitialized(true);
-      } catch (e) {
-        console.warn('Initialization error:', e);
-        setIsInitialized(true);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    prepare();
+    loadStoredValue();
   }, []);
-  
-  if (isLoading) {
-    // Show splash screen while loading
-    return <SplashScreen />;
-  }
-  
+
+  const loadStoredValue = async () => {
+    try {
+      const data = await AsyncStorage.getItem('test-key');
+      if (data !== null) {
+        setStoredValue(data);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load from storage');
+      console.error('Load error:', error);
+    }
+  };
+
+  const saveValue = async () => {
+    try {
+      await AsyncStorage.setItem('test-key', value);
+      setStoredValue(value);
+      Alert.alert('Success', 'Value stored successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save to storage');
+      console.error('Save error:', error);
+    }
+  };
+
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <NavigationContainer>
-          <Stack.Navigator 
-            screenOptions={{ 
-              headerShown: false,
-              animationEnabled: true,
-            }}
-          >
-            {!isAuthenticated ? (
-              // Auth screens
-              <Stack.Screen name="Login" component={LoginScreen} />
-            ) : (
-              // Main app screens
-              <Stack.Screen name="Main" component={MainNavigator} />
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+      <Text style={{ fontSize: 24, marginBottom: 20 }}>EcoCart Storage Test</Text>
+      
+      <Text style={{ marginBottom: 5 }}>Enter a value to store:</Text>
+      <TextInput
+        style={{ 
+          width: '100%', 
+          borderWidth: 1, 
+          borderColor: '#ccc', 
+          padding: 10, 
+          marginBottom: 15,
+          borderRadius: 5
+        }}
+        value={value}
+        onChangeText={setValue}
+        placeholder="Enter text to store"
+      />
+      
+      <Button title="Save to Storage" onPress={saveValue} />
+      
+      {storedValue ? (
+        <View style={{ marginTop: 30, padding: 15, backgroundColor: '#f0f0f0', borderRadius: 5, width: '100%' }}>
+          <Text style={{ fontWeight: 'bold' }}>Retrieved from storage:</Text>
+          <Text>{storedValue}</Text>
+        </View>
+      ) : (
+        <Text style={{ marginTop: 30, fontStyle: 'italic' }}>No stored value found</Text>
+      )}
+    </View>
   );
 } 

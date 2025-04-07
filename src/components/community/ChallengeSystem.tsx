@@ -4,7 +4,8 @@ import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import React from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import * as Progress from 'react-native-progress';
+// Comment out the Progress import for now
+// import * as Progress from 'react-native-progress';
 
 interface Challenge {
   id: string;
@@ -42,6 +43,21 @@ const RARITY_COLORS = {
   rare: '#4169E1',
   epic: '#9932CC',
   legendary: '#FFD700'
+};
+
+const ProgressBar = ({ progress, color }: { progress: number, color: string }) => {
+  return (
+    <View style={{ height: 8, width: '100%', backgroundColor: '#f0f0f0', borderRadius: 4 }}>
+      <View 
+        style={{ 
+          height: '100%', 
+          width: `${Math.min(100, Math.max(0, progress * 100))}%`, 
+          backgroundColor: color, 
+          borderRadius: 4 
+        }} 
+      />
+    </View>
+  );
 };
 
 export const ChallengeSystem: React.FC<ChallengeSectionProps> = ({
@@ -96,14 +112,7 @@ export const ChallengeSystem: React.FC<ChallengeSectionProps> = ({
       </ThemedText>
 
       <View style={styles.progressSection}>
-        <Progress.Bar
-          progress={challenge.currentAmount / challenge.targetAmount}
-          width={null}
-          color="#2e7d32"
-          unfilledColor="#e9ecef"
-          borderWidth={0}
-          height={8}
-        />
+        <ProgressBar progress={challenge.currentAmount / challenge.targetAmount} color="#2e7d32" />
         <ThemedText style={styles.progressText}>
           {`${challenge.currentAmount}/${challenge.targetAmount}kg`}
         </ThemedText>

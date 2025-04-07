@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { ChartData, MaterialData, MetricType, TimeFrame } from '@/types/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -36,7 +36,7 @@ export function RecyclingDashboard({
   onMetricChange,
   onExportData
 }: RecyclingDashboardProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('month');
   const [metric, setMetric] = useState<MetricType>('weight');
   const screenWidth = Dimensions.get('window').width - 32; // Adjust for padding

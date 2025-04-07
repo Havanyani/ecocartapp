@@ -29,7 +29,8 @@ interface TimeSeriesMetrics {
 type MetricKey = keyof MetricData;
 
 export function PerformanceMetricsView() {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
   const [metrics, setMetrics] = useState<TimeSeriesMetrics>({});
 
   useEffect(() => {
@@ -79,7 +80,8 @@ interface MetricCardProps {
 }
 
 function MetricCard({ metric }: MetricCardProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
   
   return (
     <ThemedView style={[styles.card]}>

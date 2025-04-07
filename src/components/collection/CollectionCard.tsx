@@ -1,9 +1,9 @@
 import { ThemedText } from '@/components/ui/ThemedText';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Collection } from '@/store/slices/collectionSlice';
+import { useTheme } from '@/theme';
+import { Collection } from '@/types/Collection';
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface CollectionCardProps {
   collection: Collection;
@@ -11,18 +11,19 @@ interface CollectionCardProps {
 }
 
 export function CollectionCard({ collection, showStatus = true }: CollectionCardProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
+  const navigation = useNavigation();
 
   const getStatusColor = () => {
     switch (collection.status) {
       case 'completed':
-        return theme.colors.success;
+        return theme.theme.colors.success;
       case 'in_progress':
-        return theme.colors.warning;
+        return theme.theme.colors.warning;
       case 'cancelled':
-        return theme.colors.error;
+        return theme.theme.colors.error;
       default:
-        return theme.colors.primary;
+        return theme.theme.colors.primary;
     }
   };
 
@@ -36,19 +37,17 @@ export function CollectionCard({ collection, showStatus = true }: CollectionCard
     });
   };
 
+  const handlePress = () => {
+    navigation.navigate('CollectionDetails', { id: collection.id });
+  };
+
   return (
-    <Link
-      href={{
-        pathname: '/collections/[id]',
-        params: { id: collection.id }
-      }}
-      asChild
-    >
-      <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+    <TouchableOpacity onPress={handlePress}>
+      <View style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
         <View style={styles.header}>
           <View style={styles.dateContainer}>
-            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-            <ThemedText variant="body" style={styles.date}>
+            <Ionicons name="calendar-outline" size={20} color={theme.theme.colors.primary} />
+            <ThemedText style={styles.date}>
               {formatDate(collection.scheduledDateTime)}
             </ThemedText>
           </View>
@@ -60,7 +59,6 @@ export function CollectionCard({ collection, showStatus = true }: CollectionCard
               ]}
             >
               <ThemedText
-                variant="body-sm"
                 style={[styles.statusText, { color: getStatusColor() }]}
               >
                 {collection.status.replace('_', ' ').toUpperCase()}
@@ -71,15 +69,15 @@ export function CollectionCard({ collection, showStatus = true }: CollectionCard
 
         <View style={styles.content}>
           <View style={styles.materialInfo}>
-            <ThemedText variant="h3">{collection.materialType}</ThemedText>
-            <ThemedText variant="body-sm">
+            <ThemedText style={styles.materialTitle}>{collection.materialType}</ThemedText>
+            <ThemedText style={styles.materialSubtitle}>
               {collection.estimatedWeight}kg estimated
             </ThemedText>
           </View>
 
           <View style={styles.locationInfo}>
-            <Ionicons name="location-outline" size={20} color={theme.colors.primary} />
-            <ThemedText variant="body-sm" numberOfLines={2} style={styles.address}>
+            <Ionicons name="location-outline" size={20} color={theme.theme.colors.primary} />
+            <ThemedText numberOfLines={2} style={styles.address}>
               {collection.location.address}
             </ThemedText>
           </View>
@@ -87,22 +85,22 @@ export function CollectionCard({ collection, showStatus = true }: CollectionCard
           {collection.status === 'completed' && (
             <View style={styles.stats}>
               <View style={styles.statItem}>
-                <ThemedText variant="h3">{collection.actualWeight}kg</ThemedText>
-                <ThemedText variant="body-sm">Actual Weight</ThemedText>
+                <ThemedText style={styles.statValue}>{collection.actualWeight}kg</ThemedText>
+                <ThemedText style={styles.statLabel}>Actual Weight</ThemedText>
               </View>
               <View style={styles.statItem}>
-                <ThemedText variant="h3">{collection.pointsEarned}</ThemedText>
-                <ThemedText variant="body-sm">Points Earned</ThemedText>
+                <ThemedText style={styles.statValue}>{collection.pointsEarned}</ThemedText>
+                <ThemedText style={styles.statLabel}>Points Earned</ThemedText>
               </View>
               <View style={styles.statItem}>
-                <ThemedText variant="h3">{collection.co2Offset}kg</ThemedText>
-                <ThemedText variant="body-sm">CO2 Offset</ThemedText>
+                <ThemedText style={styles.statValue}>{collection.co2Offset}kg</ThemedText>
+                <ThemedText style={styles.statLabel}>CO2 Offset</ThemedText>
               </View>
             </View>
           )}
         </View>
       </View>
-    </Link>
+    </TouchableOpacity>
   );
 }
 
@@ -139,6 +137,13 @@ const styles = StyleSheet.create({
   materialInfo: {
     marginBottom: 4,
   },
+  materialTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  materialSubtitle: {
+    fontSize: 14,
+  },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -146,6 +151,7 @@ const styles = StyleSheet.create({
   address: {
     flex: 1,
     marginLeft: 8,
+    fontSize: 14,
   },
   stats: {
     flexDirection: 'row',
@@ -157,5 +163,12 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  statLabel: {
+    fontSize: 14,
   },
 }); 

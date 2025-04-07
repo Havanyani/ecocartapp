@@ -1,12 +1,11 @@
-import { useTheme } from '@/hooks/useTheme';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { useTheme } from '@/theme';
 import type { AppRoutePath } from '@/types/navigation';
-import type { Theme } from '@/types/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, type LinkProps } from 'expo-router';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { ThemedText } from '@/components/ui/ThemedText';
 
 export interface SettingsItemProps {
   title: string;
@@ -19,30 +18,33 @@ export interface SettingsItemProps {
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 export function SettingsItem({ title, href, onPress, isLast, icon }: SettingsItemProps) {
-  const theme = useTheme() as Theme;
+  const theme = useTheme()()();
 
   const content = (
     <View style={[
       styles.item, 
       isLast ? null : styles.itemBorder,
-      { backgroundColor: theme.colors.card }
+      { 
+        backgroundColor: theme.colors.card,
+        borderColor: theme.colors.border
+      }
     ]}>
       <Ionicons 
         name={icon} 
         size={22} 
-        color={theme.colors.text.secondary} 
+        color={theme.colors.textSecondary} 
         style={styles.icon} 
       />
       <ThemedText 
         variant="primary" 
-        style={[styles.itemText, { color: theme.colors.text.primary }]}
+        style={[styles.itemText, { color: theme.colors.text }]}
       >
         {title}
       </ThemedText>
       <Ionicons 
         name="chevron-forward" 
         size={20} 
-        color={theme.colors.text.secondary} 
+        color={theme.colors.textSecondary} 
       />
     </View>
   );
@@ -67,7 +69,6 @@ const styles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#eee',
   },
   icon: {
     marginRight: 12,

@@ -1,0 +1,12 @@
+{
+  "name": "eslint-plugin-ecocart-rules",
+  "version": "1.0.0",
+  "description": "Custom ESLint rules for EcoCart",
+  "main": "index.js",
+  "author": "EcoCart Team",
+  "license": "UNLICENSED",
+  "private": true,
+  "peerDependencies": {
+    "eslint": ">=7.0.0"
+  }
+} 

@@ -1,0 +1,30 @@
+{
+  "name": "EcoCart",
+  "shortDescription": "Smart Plastic Collection & Recycling App",
+  "fullDescription": "EcoCart revolutionizes plastic recycling by connecting collectors with recycling points. Earn eco-credits for your contributions to a cleaner planet.\n\nKey Features:\n• Smart Collection Routes - Optimize your recycling routes\n• Real-time Recycling Points - Find nearby collection points\n• Eco-credits Rewards - Earn points for your contributions\n• Community Challenges - Join environmental initiatives\n• Progress Tracking - Monitor your impact\n• Environmental Stats - See your contribution to a cleaner planet\n\nJoin thousands of eco-conscious users making a difference, one collection at a time!",
+  "featureGraphic": "./images/android/feature-graphic.png",
+  "category": "LIFESTYLE",
+  "familyCategory": "FAMILY_ACTION",
+  "contentRating": {
+    "rating": "EVERYONE",
+    "contentDescriptors": [],
+    "interactiveElements": ["Digital Purchases", "Unrestricted Internet"]
+  },
+  "contactEmail": "support@ecocart.app",
+  "contactPhone": "+1-555-0123-4567",
+  "companyName": "EcoCart Inc.",
+  "companyWebsite": "https://ecocart.app",
+  "privacyPolicyUrl": "https://ecocart.app/privacy",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "minimumSdkVersion": 26,
+  "targetSdkVersion": 33,
+  "languages": ["en-US"],
+  "localizations": {
+    "en-US": {
+      "name": "EcoCart",
+      "shortDescription": "Smart Plastic Collection & Recycling App",
+      "fullDescription": "EcoCart revolutionizes plastic recycling by connecting collectors with recycling points. Earn eco-credits for your contributions to a cleaner planet.\n\nKey Features:\n• Smart Collection Routes - Optimize your recycling routes\n• Real-time Recycling Points - Find nearby collection points\n• Eco-credits Rewards - Earn points for your contributions\n• Community Challenges - Join environmental initiatives\n• Progress Tracking - Monitor your impact\n• Environmental Stats - See your contribution to a cleaner planet\n\nJoin thousands of eco-conscious users making a difference, one collection at a time!"
+    }
+  }
+} 

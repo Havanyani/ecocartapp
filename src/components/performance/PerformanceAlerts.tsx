@@ -1,5 +1,5 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -29,7 +29,7 @@ const DEFAULT_THRESHOLDS: PerformanceThreshold[] = [
 ];
 
 export const PerformanceAlerts: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
   const [thresholds, setThresholds] = useState<PerformanceThreshold[]>(DEFAULT_THRESHOLDS);
   const [isLoading, setIsLoading] = useState(false);

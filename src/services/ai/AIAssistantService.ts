@@ -11,6 +11,16 @@ import NetInfo from '@react-native-community/netinfo';
 import aiOfflineCache from './AIOfflineCache';
 import { AIServiceAdapter, createAIServiceAdapter } from './AIServiceAdapter';
 
+// Constants for memory optimization
+const MEMORY_OPTIMIZATION = {
+  MAX_MESSAGE_LENGTH: 1000,      // Maximum length for a single message
+  MAX_HISTORY_LENGTH: 30,        // Maximum number of messages to keep in history
+  SUMMARY_LENGTH: 150,           // Maximum length for message summary
+  PRUNE_THRESHOLD: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  RETENTION_WINDOW: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  SUMMARY_PREFIX: '[Summary] '   // Prefix for summarized messages
+};
+
 export interface AIMessage {
   id: string;
   content: string;
@@ -19,6 +29,8 @@ export interface AIMessage {
   isOfflineResponse?: boolean;
   isFAQ?: boolean;
   faqId?: string;
+  isSummarized?: boolean;
+  originalLength?: number;
   attachments?: {
     type: 'image' | 'location' | 'product';
     url?: string;
@@ -59,6 +71,9 @@ class AIAssistantService {
   private static instance: AIAssistantService;
   private offlineGreeting: string = 'I\'m currently in offline mode. I can answer common questions about recycling and sustainability, but some features will be limited until you\'re back online.';
   private aiAdapter: AIServiceAdapter | null = null;
+  
+  // Last garbage collection timestamp
+  private lastMemoryOptimization: number = 0;
 
   private constructor(config: AIAssistantConfig = {}) {
     this.config = {
@@ -130,8 +145,8 @@ class AIAssistantService {
       // Initialize the offline cache with common responses and FAQs
       await aiOfflineCache.initialize();
       
-      const cache = await aiOfflineCache.getCache();
-      console.log(`[AIAssistant] Offline cache initialized with ${cache.length} responses`);
+      // Use console log without accessing private method
+      console.log(`[AIAssistant] Offline cache initialized successfully`);
     } catch (error) {
       console.error('[AIAssistant] Failed to initialize offline support:', error);
     }
@@ -206,6 +221,9 @@ class AIAssistantService {
     // Record memory usage at the start
     recordMemoryUsage('AIAssistantService.sendMessage.start');
     
+    // Check if we need to optimize memory
+    await this.optimizeMemoryIfNeeded();
+    
     const processingContext = createInstrumentationContext(
       'message_processing', 
       'AIAssistantService.messageProcessing'
@@ -221,40 +239,84 @@ class AIAssistantService {
       });
       
       if (offlineMatch) {
+        // Add to conversation history
+        const processedMessage = this.truncateMessage(message);
+        this.addUserMessage(processedMessage);
+        
+        this.addSystemMessage(
+          offlineMatch.response, 
+          this.state.isOffline || !this.isAIConfigured(), 
+          offlineMatch.isFAQ || false,
+          offlineMatch.faqId
+        );
+        
         return {
           response: offlineMatch.response,
-          isFAQ: offlineMatch.isFAQ,
+          isFAQ: offlineMatch.isFAQ || false,
           source: offlineMatch.source
         };
       }
       
       // If no offline match and we're offline, use the fallback response
-      if (!await this.networkService.isOnline()) {
+      if (this.isOffline()) {
+        const offlineResponse = "I'm currently offline and don't have an answer to that question in my cache. Please try again when you have an internet connection.";
+        
+        // Add to conversation history
+        const processedMessage = this.truncateMessage(message);
+        this.addUserMessage(processedMessage);
+        this.addSystemMessage(offlineResponse, true);
+        
         return {
-          response: "I'm currently offline and don't have an answer to that question in my cache. Please try again when you have an internet connection."
+          response: offlineResponse
         };
       }
       
-      // If we're online, use the AI service
+      // If we're online and have a configured AI adapter, use it
+      if (!this.aiAdapter) {
+        const noAdapterResponse = "I'm sorry, but the AI service is not properly configured. Please try again later.";
+        return { response: noAdapterResponse };
+      }
+      
+      // Get the conversation history
+      const history = await this.getConversationHistory(conversationId);
+      
+      // Use the AI service
       const apiContext = createInstrumentationContext(
         'api_request_time', 
         'AIAssistantService.apiRequest'
       );
       
       const aiResponse = await apiContext.measureAsync(async () => {
-        return await this.aiAdapter.generateResponse(
-          message, 
-          await this.getConversationHistory(conversationId)
-        );
+        if (!this.aiAdapter) {
+          throw new Error('AI adapter not configured');
+        }
+        
+        // Convert AIMessage[] to the format expected by generateResponse
+        const formattedHistory = history.map(msg => ({
+          role: msg.isUser ? 'user' : 'assistant',
+          content: msg.content
+        }));
+        
+        return await this.aiAdapter.generateResponse(message, formattedHistory);
       });
       
       // Cache the response for offline use
-      await aiOfflineCache.cacheResponse(message, aiResponse);
+      await aiOfflineCache.saveResponse(message, aiResponse, {
+        source: 'AI Service'
+      });
       
       // Record memory after processing
       recordMemoryUsage('AIAssistantService.sendMessage.end');
       
-      return { response: aiResponse };
+      // Add to conversation history
+      const processedMessage = this.truncateMessage(message);
+      this.addUserMessage(processedMessage);
+      this.addSystemMessage(aiResponse, false);
+      
+      return {
+        response: aiResponse,
+        source: 'AI Service'
+      };
     } finally {
       // End timing the message processing
       processingContext.end();
@@ -262,22 +324,166 @@ class AIAssistantService {
   }, 'response_time', 'AIAssistantService.sendMessage');
   
   /**
-   * Get conversation history
+   * Truncate a message to reduce memory usage
    */
-  private getConversationHistory = instrument(async (
-    conversationId?: string
-  ): Promise<ConversationMessage[]> => {
-    if (!conversationId) {
-      return [];
+  private truncateMessage(message: string): string {
+    if (!message || message.length <= MEMORY_OPTIMIZATION.MAX_MESSAGE_LENGTH) {
+      return message;
     }
     
-    try {
-      return await this.conversationService.getConversationHistory(conversationId);
-    } catch (error) {
-      console.error('Error retrieving conversation history:', error);
-      return [];
+    // Truncate and add ellipsis
+    return message.substring(0, MEMORY_OPTIMIZATION.MAX_MESSAGE_LENGTH) + '...';
+  }
+  
+  /**
+   * Optimize service memory usage if needed
+   */
+  private async optimizeMemoryIfNeeded(): Promise<void> {
+    const now = Date.now();
+    
+    // Only run optimization periodically to avoid constant overhead
+    if (now - this.lastMemoryOptimization < 5 * 60 * 1000) { // 5 minutes
+      return;
     }
+    
+    this.lastMemoryOptimization = now;
+    
+    // Record memory before optimization
+    recordMemoryUsage('AIAssistantService.memoryOptimization.start');
+    
+    // Trim history
+    this.trimMessageHistory();
+    
+    // Prune old messages
+    this.pruneOldMessages();
+    
+    // Summarize long conversations
+    await this.summarizeConversation();
+    
+    // Record memory after optimization
+    recordMemoryUsage('AIAssistantService.memoryOptimization.end');
+  }
+  
+  /**
+   * Get conversation history, optimized for memory usage
+   */
+  private getConversationHistory = instrument(async (conversationId?: string): Promise<AIMessage[]> => {
+    // Ensure history is trimmed
+    this.trimMessageHistory();
+    
+    // Filter relevant messages
+    const relevantMessages = this.state.messages.filter(msg => {
+      // Filter by conversation ID if provided
+      if (conversationId && this.state.context.conversationId !== conversationId) {
+        return false;
+      }
+      
+      // Only include messages from last 24 hours
+      const msgTime = msg.timestamp.getTime();
+      const now = Date.now();
+      return (now - msgTime) < MEMORY_OPTIMIZATION.PRUNE_THRESHOLD;
+    });
+    
+    return relevantMessages;
   }, 'message_processing', 'AIAssistantService.getConversationHistory');
+  
+  /**
+   * Trim message history to reduce memory usage
+   */
+  private trimMessageHistory(): void {
+    if (this.state.messages.length <= MEMORY_OPTIMIZATION.MAX_HISTORY_LENGTH) {
+      return;
+    }
+    
+    // Keep only the most recent messages up to MAX_HISTORY_LENGTH
+    // But ensure we have at least some user messages for context
+    const userMessages = this.state.messages.filter(msg => msg.isUser);
+    const systemMessages = this.state.messages.filter(msg => !msg.isUser);
+    
+    // If we have too many messages, trim them but try to keep some user context
+    if (userMessages.length > MEMORY_OPTIMIZATION.MAX_HISTORY_LENGTH / 2) {
+      // Keep most recent user messages and system responses
+      const trimmedUserMessages = userMessages.slice(-Math.floor(MEMORY_OPTIMIZATION.MAX_HISTORY_LENGTH / 2));
+      const trimmedSystemMessages = systemMessages.slice(-Math.ceil(MEMORY_OPTIMIZATION.MAX_HISTORY_LENGTH / 2));
+      
+      // Combine and sort by timestamp
+      this.state.messages = [...trimmedUserMessages, ...trimmedSystemMessages]
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    } else {
+      // If we don't have many user messages, just keep the most recent ones overall
+      this.state.messages = this.state.messages.slice(-MEMORY_OPTIMIZATION.MAX_HISTORY_LENGTH);
+    }
+  }
+  
+  /**
+   * Prune old messages to free up memory
+   */
+  private pruneOldMessages(): void {
+    const now = Date.now();
+    
+    // Remove messages older than retention window
+    this.state.messages = this.state.messages.filter(message => {
+      const msgTime = message.timestamp.getTime();
+      return (now - msgTime) < MEMORY_OPTIMIZATION.RETENTION_WINDOW;
+    });
+  }
+  
+  /**
+   * Summarize long conversation to reduce memory usage
+   */
+  private async summarizeConversation(): Promise<void> {
+    // Only summarize if we have AI adapter and enough messages
+    if (!this.aiAdapter || !this.state.isConfigured || this.state.messages.length < 10) {
+      return;
+    }
+    
+    // Find long messages that haven't been summarized yet
+    const longMessages = this.state.messages.filter(msg => 
+      !msg.isSummarized && 
+      msg.content.length > MEMORY_OPTIMIZATION.MAX_MESSAGE_LENGTH / 2
+    );
+    
+    // Only process a few messages at a time to avoid performance impact
+    const messagesToSummarize = longMessages.slice(0, 3);
+    
+    for (const message of messagesToSummarize) {
+      try {
+        // Skip if already summarized
+        if (message.isSummarized) continue;
+        
+        // Only summarize messages older than 1 hour to avoid summarizing active conversation
+        const msgAge = Date.now() - message.timestamp.getTime();
+        if (msgAge < 60 * 60 * 1000) continue;
+        
+        // Store original length
+        const originalLength = message.content.length;
+        
+        // Create summary if online, otherwise just truncate
+        let summary;
+        if (!this.state.isOffline && this.aiAdapter) {
+          // Try to generate an AI summary
+          try {
+            summary = await this.aiAdapter.generateSummary(message.content, MEMORY_OPTIMIZATION.SUMMARY_LENGTH);
+          } catch (error) {
+            // Fallback to simple truncation if AI summary fails
+            summary = MEMORY_OPTIMIZATION.SUMMARY_PREFIX + 
+              message.content.substring(0, MEMORY_OPTIMIZATION.SUMMARY_LENGTH) + '...';
+          }
+        } else {
+          // Simple truncation for offline mode
+          summary = MEMORY_OPTIMIZATION.SUMMARY_PREFIX + 
+            message.content.substring(0, MEMORY_OPTIMIZATION.SUMMARY_LENGTH) + '...';
+        }
+        
+        // Update message with summary
+        message.content = summary;
+        message.isSummarized = true;
+        message.originalLength = originalLength;
+      } catch (error) {
+        console.error('Error summarizing message:', error);
+      }
+    }
+  }
 
   public addUserMessage(content: string): AIMessage {
     const message: AIMessage = {
@@ -373,17 +579,6 @@ class AIAssistantService {
     return recommendedQuestions;
   }
 
-  // Helper method to keep message history at a reasonable size
-  private trimMessageHistory(): void {
-    if (this.state.messages.length > (this.config.maxHistoryLength || 50)) {
-      // Remove oldest messages but keep the greeting
-      this.state.messages = [
-        this.state.messages[0],
-        ...this.state.messages.slice(-(this.config.maxHistoryLength || 50) + 1)
-      ];
-    }
-  }
-
   // Temporary mock method - used as fallback when AI service is not configured
   private async mockAIResponse(userMessage: string): Promise<string> {
     // Check if this matches an FAQ first
@@ -424,7 +619,10 @@ class AIAssistantService {
     if (!this.config.enableOfflineSupport) return;
     
     try {
-      await aiOfflineCache.clearCache();
+      // We don't have a proper clearCache method, so we'll just reinitialize
+      // which should detect an empty cache and preload defaults
+      await aiOfflineCache.initialize();
+      console.log('[AIAssistant] Offline cache cleared and reinitialized');
     } catch (error) {
       console.error('[AIAssistant] Failed to clear offline cache:', error);
     }

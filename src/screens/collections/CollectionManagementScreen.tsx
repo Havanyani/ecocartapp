@@ -6,7 +6,7 @@ import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { collectionService } from '@/services/CollectionService';
 import { Collection, selectCollections, selectError, selectIsLoading, setCollections, setError, setLoading } from '@/store/slices/collectionSlice';
-import { TimeSlot } from '@/types/Collection';
+import { TimeSlot } from '@/types/collections';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

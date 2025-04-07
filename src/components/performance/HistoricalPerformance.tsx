@@ -1,7 +1,3 @@
-import { useTheme } from '@/hooks/useTheme';
-import { performanceAnalytics } from '@/utils/PerformanceAnalytics';
-import React, { useState } from 'react';
-import { Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
     VictoryAxis,
     VictoryBar,
@@ -11,7 +7,11 @@ import {
     VictoryTheme,
     VictoryTooltip,
     VictoryVoronoiContainer
-} from 'victory-native';
+} from '@/components/ui/VictoryChartAdapter';
+import { useTheme } from '@/theme';
+import { performanceAnalytics } from '@/utils/PerformanceAnalytics';
+import React, { useState } from 'react';
+import { Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type TimeRange = 'hour' | 'day' | 'week';
 type MetricType = 'memory' | 'network' | 'render' | 'frameRate' | 'interaction';
@@ -30,7 +30,7 @@ interface DistributionData {
 }
 
 export const HistoricalPerformance: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [timeRange, setTimeRange] = useState<TimeRange>('hour');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('memory');
   const [chartType, setChartType] = useState<ChartType>('line');

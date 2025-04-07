@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AsyncStorage Test</title>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    #root {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background-color: #f5f5f5;
+    }
+    .test-container {
+      text-align: center;
+      padding: 20px;
+      margin: 20px;
+      border-radius: 8px;
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+    }
+    h1 {
+      color: #2e7d32;
+    }
+    .input-group {
+      margin: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      width: 80%;
+      max-width: 300px;
+    }
+    button {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #1b5e20;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f0f7ee;
+      border-radius: 4px;
+      text-align: left;
+    }
+    .error {
+      background-color: #ffebee;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="test-container">
+      <h1>AsyncStorage Test</h1>
+      <p>This page simulates AsyncStorage using localStorage as a fallback.</p>
+      
+      <div class="input-group">
+        <input type="text" id="keyInput" placeholder="Key" value="test_key">
+        <input type="text" id="valueInput" placeholder="Value" value="Test value from web">
+        <div>
+          <button id="saveButton">Save</button>
+          <button id="loadButton">Load</button>
+          <button id="clearButton">Clear</button>
+        </div>
+      </div>
+      
+      <div id="resultContainer" class="result">
+        Results will appear here...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simulate AsyncStorage using localStorage
+    const AsyncStorageSimulator = {
+      setItem: async (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+          return null;
+        } catch (error) {
+          throw error;
+        }
+      },
+      getItem: async (key) => {
+        try {
+          return localStorage.getItem(key);
+        } catch (error) {
+          throw error;
+        }
+      },
+      removeItem: async (key) => {
+        try {
+          localStorage.removeItem(key);
+          return null;
+        } catch (error) {
+          throw error;
+        }
+      },
+      clear: async () => {
+        try {
+          localStorage.clear();
+          return null;
+        } catch (error) {
+          throw error;
+        }
+      },
+      getAllKeys: async () => {
+        try {
+          return Object.keys(localStorage);
+        } catch (error) {
+          throw error;
+        }
+      }
+    };
+
+    // DOM elements
+    const keyInput = document.getElementById('keyInput');
+    const valueInput = document.getElementById('valueInput');
+    const saveButton = document.getElementById('saveButton');
+    const loadButton = document.getElementById('loadButton');
+    const clearButton = document.getElementById('clearButton');
+    const resultContainer = document.getElementById('resultContainer');
+
+    // Display result
+    function displayResult(message, isError = false) {
+      resultContainer.textContent = message;
+      resultContainer.className = isError ? 'result error' : 'result';
+    }
+
+    // Save data
+    saveButton.addEventListener('click', async () => {
+      const key = keyInput.value.trim();
+      const value = valueInput.value;
+      
+      if (!key) {
+        displayResult('Please enter a key', true);
+        return;
+      }
+      
+      try {
+        await AsyncStorageSimulator.setItem(key, value);
+        displayResult(`Successfully saved value "${value}" to key "${key}"`);
+      } catch (error) {
+        displayResult(`Error saving data: ${error.message}`, true);
+      }
+    });
+
+    // Load data
+    loadButton.addEventListener('click', async () => {
+      const key = keyInput.value.trim();
+      
+      if (!key) {
+        displayResult('Please enter a key', true);
+        return;
+      }
+      
+      try {
+        const value = await AsyncStorageSimulator.getItem(key);
+        if (value === null) {
+          displayResult(`No data found for key "${key}"`);
+        } else {
+          displayResult(`Retrieved value: "${value}" for key "${key}"`);
+          valueInput.value = value;
+        }
+      } catch (error) {
+        displayResult(`Error loading data: ${error.message}`, true);
+      }
+    });
+
+    // Clear storage
+    clearButton.addEventListener('click', async () => {
+      try {
+        await AsyncStorageSimulator.clear();
+        displayResult('Storage cleared successfully');
+        valueInput.value = '';
+      } catch (error) {
+        displayResult(`Error clearing storage: ${error.message}`, true);
+      }
+    });
+
+    // Initial load
+    window.addEventListener('load', async () => {
+      try {
+        const keys = await AsyncStorageSimulator.getAllKeys();
+        displayResult(`Storage has ${keys.length} keys: ${keys.join(', ')}`);
+      } catch (error) {
+        displayResult(`Error loading keys: ${error.message}`, true);
+      }
+    });
+  </script>
+</body>
+</html> 

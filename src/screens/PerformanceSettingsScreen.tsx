@@ -5,7 +5,7 @@ import {
 } from '@/components/ui';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePerformanceSettings } from '@/hooks/usePerformanceSettings';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import {
@@ -36,7 +36,7 @@ interface NotificationSetting {
 
 export function PerformanceSettingsScreen() {
   const navigation = useNavigation();
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { 
     metrics,
     updateMetric,

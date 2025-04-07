@@ -1,0 +1,19 @@
+
+> ecocart@1.0.0 tunnel-enhanced
+> scripts\tunnel-enhanced.bat
+
+=== EcoCart Enhanced Tunnel Launcher ===
+
+This launcher uses multiple connection methods for reliable remote testing
+Checking for processes using port 8081...
+
+Your development machine's IP address: 192.168.68.110
+
+CONNECTION INSTRUCTIONS:
+=======================
+1. This script will first try to establish a tunnel connection (works across networks)
+2. If the tunnel fails, it will fall back to LAN mode (requires same network)
+3. When prompted, install the Expo CLI globally if needed
+
+Setting up environment...
+Checking if @expo/ngrok is installed...

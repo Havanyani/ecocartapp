@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Metro Bundle Test</title>
+    <script>
+        async function testMetroConnection() {
+            try {
+                // Try to fetch the bundle manifest
+                const response = await fetch('http://localhost:8081/');
+                const text = await response.text();
+                document.getElementById('result').innerHTML = `
+                    <p>Connection successful!</p>
+                    <pre>${text.substring(0, 500)}...</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <p>Connection failed: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Metro Bundle Test</h1>
+    <button onclick="testMetroConnection()">Test Metro Connection</button>
+    <div id="result"></div>
+</body>
+</html> 

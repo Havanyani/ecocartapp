@@ -1,13 +1,13 @@
-import { useTheme } from '@/hooks/useTheme';
+import { getSpacing, useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableOpacityProps,
-  View,
-  ViewStyle,
+    ActivityIndicator,
+    StyleSheet,
+    TouchableOpacity,
+    TouchableOpacityProps,
+    View,
+    ViewStyle,
 } from 'react-native';
 import { Text } from './Text';
 
@@ -36,25 +36,25 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: theme.colors.primary,
+          backgroundColor: theme.theme.colors.primary,
           borderWidth: 0,
         };
       case 'secondary':
         return {
-          backgroundColor: theme.colors.secondary,
+          backgroundColor: theme.theme.colors.secondary,
           borderWidth: 0,
         };
       case 'outline':
         return {
           backgroundColor: 'transparent',
           borderWidth: 1,
-          borderColor: theme.colors.primary,
+          borderColor: theme.theme.colors.primary,
         };
       case 'ghost':
         return {
@@ -70,35 +70,35 @@ export function Button({
     switch (size) {
       case 'sm':
         return {
-          paddingVertical: 8,
-          paddingHorizontal: 16,
+          paddingVertical: getSpacing(theme, 'xs'),
+          paddingHorizontal: getSpacing(theme, 'sm'),
         };
       case 'lg':
         return {
-          paddingVertical: 16,
-          paddingHorizontal: 24,
+          paddingVertical: getSpacing(theme, 'md'),
+          paddingHorizontal: getSpacing(theme, 'lg'),
         };
       default:
         return {
-          paddingVertical: 12,
-          paddingHorizontal: 20,
+          paddingVertical: getSpacing(theme, 'sm'),
+          paddingHorizontal: getSpacing(theme, 'md'),
         };
     }
   };
 
   const getTextColor = (): string => {
     if (isDisabled) {
-      return theme.colors.text.secondary;
+      return theme.theme.colors.textSecondary;
     }
     switch (variant) {
       case 'primary':
       case 'secondary':
-        return theme.colors.white;
+        return theme.theme.colors.white;
       case 'outline':
       case 'ghost':
-        return theme.colors.primary;
+        return theme.theme.colors.primary;
       default:
-        return theme.colors.text.primary;
+        return theme.theme.colors.text;
     }
   };
 

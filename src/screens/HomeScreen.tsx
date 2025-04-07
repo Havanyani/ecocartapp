@@ -1,22 +1,21 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import CollectionScheduler from '@/components/CollectionScheduler';
 import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { useStore } from '@/hooks/useStore';
 import { UserService } from '@/services/UserService';
-import type { TimeSlot } from '@/types/Collection';
-import type { RootStackParamList } from '@/types/navigation';
+import { useTheme } from '@/theme';
+import { TimeSlot } from '@/types/collections';
 import { formatDate } from '@/utils/dateUtils';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen() {
   const { userStore, collectionStore } = useStore();
+  const theme = useTheme();
+  const navigation = useNavigation();
 
   useEffect(() => {
     loadUserData();
@@ -36,82 +35,82 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
       <ScrollView>
         {/* Welcome Section */}
-        <View style={styles.header}>
+        <ThemedView style={styles.header}>
           <ThemedText style={styles.welcomeText}>Welcome back!</ThemedText>
           <TouchableOpacity 
             style={styles.notificationButton}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <MaterialCommunityIcons name="bell-outline" size={24} color="#2e7d32" />
+            <MaterialCommunityIcons name="bell-outline" size={24} color={theme.theme.colors.primary} />
           </TouchableOpacity>
-        </View>
+        </ThemedView>
 
         {/* Stats Overview */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="recycle" size={32} color="#2e7d32" />
+        <ThemedView style={styles.statsContainer}>
+          <ThemedView style={[styles.statCard, { backgroundColor: theme.theme.colors.card }]}>
+            <MaterialCommunityIcons name="recycle" size={32} color={theme.theme.colors.primary} />
             <ThemedText style={styles.statValue}>
               {userStore.metrics.totalPlasticCollected}kg
             </ThemedText>
-            <ThemedText style={styles.statLabel}>Total Recycled</ThemedText>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons name="wallet" size={32} color="#2e7d32" />
+            <ThemedText style={[styles.statLabel, { color: theme.theme.colors.textSecondary }]}>Total Recycled</ThemedText>
+          </ThemedView>
+          <ThemedView style={[styles.statCard, { backgroundColor: theme.theme.colors.card }]}>
+            <MaterialCommunityIcons name="wallet" size={32} color={theme.theme.colors.primary} />
             <ThemedText style={styles.statValue}>
               R{userStore.metrics.credits}
             </ThemedText>
-            <ThemedText style={styles.statLabel}>Credits Earned</ThemedText>
-          </View>
-        </View>
+            <ThemedText style={[styles.statLabel, { color: theme.theme.colors.textSecondary }]}>Credits Earned</ThemedText>
+          </ThemedView>
+        </ThemedView>
 
         {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
+        <ThemedView style={styles.actionsContainer}>
           <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Schedule')}
+            style={[styles.actionButton, { backgroundColor: theme.theme.colors.primary }]}
+            onPress={() => navigation.navigate('ScheduleCollection')}
           >
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
-            <ThemedText style={styles.actionButtonText}>Schedule Collection</ThemedText>
+            <MaterialCommunityIcons name="plus-circle" size={24} color={theme.theme.colors.white} />
+            <ThemedText style={[styles.actionButtonText, { color: theme.theme.colors.white }]}>Schedule Collection</ThemedText>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.actionButton, styles.secondaryButton]}
+            style={[styles.actionButton, styles.secondaryButton, { borderColor: theme.theme.colors.primary }]}
             onPress={() => navigation.navigate('CollectionHistory')}
           >
-            <MaterialCommunityIcons name="history" size={24} color="#2e7d32" />
-            <ThemedText style={[styles.actionButtonText, styles.secondaryButtonText]}>
+            <MaterialCommunityIcons name="history" size={24} color={theme.theme.colors.primary} />
+            <ThemedText style={[styles.actionButtonText, styles.secondaryButtonText, { color: theme.theme.colors.primary }]}>
               View History
             </ThemedText>
           </TouchableOpacity>
-        </View>
+        </ThemedView>
 
         {/* Upcoming Collections */}
         {collectionStore.upcomingCollections.length > 0 && (
-          <View style={styles.upcomingContainer}>
+          <ThemedView style={styles.upcomingContainer}>
             <ThemedText style={styles.sectionTitle}>Upcoming Collection</ThemedText>
             {collectionStore.upcomingCollections.map((collection) => (
-              <View key={collection.id} style={styles.upcomingCard}>
-                <MaterialCommunityIcons name="calendar-clock" size={24} color="#2e7d32" />
-                <View style={styles.upcomingInfo}>
+              <ThemedView key={collection.id} style={[styles.upcomingCard, { backgroundColor: theme.theme.colors.card }]}>
+                <MaterialCommunityIcons name="calendar-clock" size={24} color={theme.theme.colors.primary} />
+                <ThemedView style={styles.upcomingInfo}>
                   <ThemedText style={styles.upcomingDate}>
-                    {formatDate(collection.date)}
+                    {formatDate(collection.scheduledDateTime)}
                   </ThemedText>
-                  <ThemedText style={styles.upcomingTime}>
-                    {collection.slot.time}
+                  <ThemedText style={[styles.upcomingTime, { color: theme.theme.colors.textSecondary }]}>
+                    {new Date(collection.scheduledDateTime).toLocaleTimeString()}
                   </ThemedText>
-                </View>
+                </ThemedView>
                 <TouchableOpacity 
                   style={styles.rescheduleButton}
-                  onPress={() => navigation.navigate('Schedule')}
+                  onPress={() => navigation.navigate('ScheduleCollection')}
                 >
-                  <ThemedText style={styles.rescheduleText}>Reschedule</ThemedText>
+                  <ThemedText style={[styles.rescheduleText, { color: theme.theme.colors.primary }]}>Reschedule</ThemedText>
                 </TouchableOpacity>
-              </View>
+              </ThemedView>
             ))}
-          </View>
+          </ThemedView>
         )}
 
         {/* Collection Scheduler */}
@@ -146,9 +145,9 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    alignItems: 'center'
+    alignItems: 'center',
+    marginHorizontal: 4
   },
   statValue: {
     fontSize: 20,
@@ -156,8 +155,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   statLabel: {
-    fontSize: 16,
-    color: '#666'
+    fontSize: 16
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -167,27 +165,25 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#2e7d32',
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    marginHorizontal: 4
   },
   actionButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
     marginLeft: 8
   },
   secondaryButton: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#2e7d32',
     padding: 16,
     borderRadius: 8
   },
   secondaryButtonText: {
-    color: '#2e7d32'
+    fontWeight: 'bold'
   },
   upcomingContainer: {
     marginBottom: 24
@@ -201,7 +197,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     marginBottom: 8
   },
@@ -214,15 +209,13 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   upcomingTime: {
-    fontSize: 14,
-    color: '#666'
+    fontSize: 14
   },
   rescheduleButton: {
     padding: 8
   },
   rescheduleText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2e7d32'
+    fontWeight: 'bold'
   }
 }); 

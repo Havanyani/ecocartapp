@@ -10,6 +10,8 @@ import { calculateJaccardSimilarity, calculateLevenshteinSimilarity } from '@/ut
 import { createInstrumentationContext, instrument, recordMemoryUsage } from '@/utils/performance/Instrumentation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import LRUCache as a constructor to avoid TypeScript namespace issues
+import { Buffer } from 'buffer';
+import { gzip, ungzip } from 'pako';
 
 // Types
 export interface CacheEntry {
@@ -24,6 +26,8 @@ export interface CacheEntry {
     faqCategory?: string;
     source?: string;
     tags?: string[];
+    compressed?: boolean;
+    originalSize?: number;
   };
 }
 
@@ -44,7 +48,10 @@ const CONFIG = {
   SIMILARITY_THRESHOLD: 0.75, // Threshold for FAQ matches
   RESPONSE_THRESHOLD: 0.7,    // Threshold for regular responses
   CACHE_EXPIRATION: 7 * 24 * 60 * 60 * 1000, // 7 days
-  HIGH_PRIORITY_TAGS: ['faq', 'common', 'popular']
+  HIGH_PRIORITY_TAGS: ['faq', 'common', 'popular'],
+  COMPRESSION_THRESHOLD: 500,  // Characters threshold for compression
+  LAZY_LOAD_THRESHOLD: 20,     // Number of entries to lazy load at startup
+  COMPRESSION_RATIO_THRESHOLD: 0.7, // Only store compressed if ratio is below this
 };
 
 // Cache storage keys
@@ -86,6 +93,10 @@ export class OptimizedAICache {
   // Initialization flag
   private isInitialized = false;
   
+  // Lazy loading tracking
+  private isFullyLoaded = false;
+  private lazyLoadInProgress = false;
+  
   /**
    * Get the singleton instance
    */
@@ -119,7 +130,7 @@ export class OptimizedAICache {
       // Load cache metadata
       await this.loadMetadata();
       
-      // Preload high-priority items into memory cache
+      // Only preload high-priority items initially for faster startup
       await this.preloadHighPriorityEntries();
       
       // Build indexes for fast lookup
@@ -131,11 +142,68 @@ export class OptimizedAICache {
       }
       
       this.isInitialized = true;
+      this.isFullyLoaded = false; // Mark that we've only loaded essential items
       recordMemoryUsage('OptimizedAICache.initialize.end');
+      
+      // Trigger lazy loading of remaining items in the background
+      this.lazyLoadRemainingEntries();
     } finally {
       context.end();
     }
   }, 'cache_load_time', 'OptimizedAICache.initialize');
+  
+  /**
+   * Lazy load remaining cache entries in the background
+   */
+  private lazyLoadRemainingEntries = async (): Promise<void> => {
+    if (this.lazyLoadInProgress || this.isFullyLoaded) return;
+    
+    this.lazyLoadInProgress = true;
+    
+    try {
+      const allEntries = await this.loadEntriesFromDisk();
+      const remainingEntries = allEntries.filter(entry => {
+        // Skip entries already in memory cache
+        const key = this.getKeyFromQuery(this.normalizeQuery(entry.query));
+        return !this.memoryCache.has(key);
+      });
+      
+      // Process entries in batches to avoid memory spikes
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < remainingEntries.length; i += BATCH_SIZE) {
+        const batch = remainingEntries.slice(i, i + BATCH_SIZE);
+        
+        // Process each entry in the batch
+        for (const entry of batch) {
+          // Decompress if needed
+          const processedEntry = entry.metadata?.compressed 
+            ? this.decompressEntry(entry) 
+            : entry;
+            
+          // Update indexes but don't load into memory cache
+          const key = this.getKeyFromQuery(this.normalizeQuery(processedEntry.query));
+          this.addToQueryIndex(this.normalizeQuery(processedEntry.query), key);
+          
+          if (processedEntry.metadata?.isFAQ && processedEntry.metadata.faqId) {
+            this.faqIndex.set(processedEntry.metadata.faqId, processedEntry);
+            
+            if (processedEntry.metadata.faqCategory) {
+              this.addToCategoryIndex(processedEntry.metadata.faqCategory, key);
+            }
+          }
+        }
+        
+        // Yield to event loop to avoid blocking UI
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      
+      this.isFullyLoaded = true;
+    } catch (error) {
+      console.error('Error lazy loading cache entries:', error);
+    } finally {
+      this.lazyLoadInProgress = false;
+    }
+  };
   
   /**
    * Lookup a query in the cache
@@ -151,10 +219,14 @@ export class OptimizedAICache {
     try {
       // First, try exact match (fastest path)
       const exactKey = this.getKeyFromQuery(normalizedQuery);
-      const exactMatch = this.memoryCache.get(exactKey);
+      let exactMatch = this.memoryCache.get(exactKey);
       
       if (exactMatch) {
         this.trackAccess(exactMatch, exactKey);
+        if (exactMatch.metadata?.compressed) {
+          exactMatch = this.decompressEntry(exactMatch);
+          this.memoryCache.set(exactKey, exactMatch);
+        }
         return this.entryToMatch(exactMatch, 1.0); // Perfect match
       }
       
@@ -183,6 +255,11 @@ export class OptimizedAICache {
             potentialMatches.sort((a, b) => b.similarity - a.similarity);
             const bestMatch = potentialMatches[0];
             this.trackAccess(bestMatch.entry, bestMatch.key);
+            if (bestMatch.entry.metadata?.compressed) {
+              const decompressed = this.decompressEntry(bestMatch.entry);
+              this.memoryCache.set(bestMatch.key, decompressed);
+              return this.entryToMatch(decompressed, bestMatch.similarity);
+            }
             return this.entryToMatch(bestMatch.entry, bestMatch.similarity);
           }
           
@@ -226,14 +303,34 @@ export class OptimizedAICache {
     const normalizedQuery = this.normalizeQuery(query);
     const key = this.getKeyFromQuery(normalizedQuery);
     
+    // Determine if response should be compressed
+    let compressedResponse = response;
+    let isCompressed = false;
+    let originalSize = 0;
+    
+    if (response.length > CONFIG.COMPRESSION_THRESHOLD) {
+      // Try compressing
+      const compressionResult = this.compressString(response);
+      isCompressed = compressionResult.compressionRatio < CONFIG.COMPRESSION_RATIO_THRESHOLD;
+      
+      if (isCompressed) {
+        compressedResponse = compressionResult.compressed;
+        originalSize = response.length;
+      }
+    }
+    
     // Create or update cache entry
     const entry: CacheEntry = {
       query,
-      response,
+      response: isCompressed ? compressedResponse : response,
       timestamp: Date.now(),
       accessCount: 1,
       lastAccessed: Date.now(),
-      metadata
+      metadata: {
+        ...metadata,
+        compressed: isCompressed,
+        originalSize: isCompressed ? originalSize : undefined
+      }
     };
     
     // Save to memory cache
@@ -756,15 +853,83 @@ export class OptimizedAICache {
    */
   public getCacheStats(): any {
     return {
-      ...this.metadata,
-      memoryEntries: this.memoryCache.size,
       initialized: this.isInitialized,
+      fullyLoaded: this.isFullyLoaded,
+      memoryEntries: this.memoryCache.size,
+      recentKeys: this.recentKeys.length,
+      totalEntries: this.metadata.totalEntries,
+      faqEntries: this.metadata.faqEntries,
+      lastUpdated: this.metadata.lastUpdated,
       indexes: {
         queries: this.queryIndex.size,
         faqs: this.faqIndex.size,
         categories: this.categoryIndex.size
       }
     };
+  }
+  
+  /**
+   * Compress a string using gzip
+   */
+  private compressString(input: string): { 
+    compressed: string, 
+    compressionRatio: number 
+  } {
+    try {
+      // Convert string to Buffer/Uint8Array
+      const data = new TextEncoder().encode(input);
+      
+      // Compress data
+      const compressed = gzip(data);
+      
+      // Convert back to string using base64 encoding
+      const compressedString = Buffer.from(compressed).toString('base64');
+      
+      // Calculate compression ratio (compressed size / original size)
+      const compressionRatio = compressedString.length / input.length;
+      
+      return {
+        compressed: compressedString,
+        compressionRatio
+      };
+    } catch (error) {
+      console.error('Error compressing string:', error);
+      return {
+        compressed: input,
+        compressionRatio: 1.0
+      };
+    }
+  }
+  
+  /**
+   * Decompress an entry with compressed response
+   */
+  private decompressEntry(entry: CacheEntry): CacheEntry {
+    if (!entry.metadata?.compressed) return entry;
+    
+    try {
+      // Get compressed data
+      const compressedData = Buffer.from(entry.response, 'base64');
+      
+      // Decompress
+      const decompressedBuffer = ungzip(compressedData);
+      
+      // Convert back to string
+      const decompressedString = new TextDecoder().decode(decompressedBuffer);
+      
+      // Return copy of entry with decompressed response
+      return {
+        ...entry,
+        response: decompressedString,
+        metadata: {
+          ...entry.metadata,
+          compressed: false
+        }
+      };
+    } catch (error) {
+      console.error('Error decompressing entry:', error);
+      return entry;
+    }
   }
 }
 

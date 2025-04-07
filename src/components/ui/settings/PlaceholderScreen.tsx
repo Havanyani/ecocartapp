@@ -13,7 +13,7 @@ export interface PlaceholderScreenProps {
 }
 
 export function PlaceholderScreen({ title, icon, description }: PlaceholderScreenProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <SafeAreaView 

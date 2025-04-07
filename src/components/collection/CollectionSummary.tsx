@@ -1,8 +1,9 @@
 import { Card } from '@/components/ui/Card';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
-import { CollectionLocation, CollectionMaterials, TimeSlot } from '@/types/Collection';
+import { useTheme } from '@/theme';
+import { CollectionLocation, CollectionMaterials } from '@/types/Collection';
+import { TimeSlot } from '@/types/collections';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import React, { useMemo } from 'react';
@@ -27,7 +28,7 @@ export function CollectionSummary({
   notes,
   onNotesChange,
 }: CollectionSummaryProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const totalCredits = useMemo(() => {
     if (!materials || materials.length === 0) return 0;
@@ -41,7 +42,7 @@ export function CollectionSummary({
   if (!timeSlot || !location) {
     return (
       <ThemedView style={styles.container}>
-        <ThemedText style={styles.errorText}>
+        <ThemedText style={[styles.errorText, { color: theme.theme.colors.error }]}>
           Missing required information. Please complete all previous steps.
         </ThemedText>
       </ThemedView>
@@ -51,25 +52,25 @@ export function CollectionSummary({
   return (
     <ThemedView style={styles.container}>
       <ThemedText style={styles.title}>Collection Summary</ThemedText>
-      <ThemedText style={styles.subtitle}>
+      <ThemedText style={[styles.subtitle, { color: theme.theme.colors.textSecondary }]}>
         Review your collection details before scheduling
       </ThemedText>
 
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ionicons name="calendar-outline" size={22} color="#2e7d32" />
+          <Ionicons name="calendar-outline" size={22} color={theme.theme.colors.success} />
           <ThemedText style={styles.cardTitle}>Date & Time</ThemedText>
         </View>
         
         <View style={styles.detailRow}>
-          <ThemedText style={styles.label}>Date:</ThemedText>
+          <ThemedText style={[styles.label, { color: theme.theme.colors.textSecondary }]}>Date:</ThemedText>
           <ThemedText style={styles.value}>
             {format(date, 'EEEE, MMMM d, yyyy')}
           </ThemedText>
         </View>
 
         <View style={styles.detailRow}>
-          <ThemedText style={styles.label}>Time:</ThemedText>
+          <ThemedText style={[styles.label, { color: theme.theme.colors.textSecondary }]}>Time:</ThemedText>
           <ThemedText style={styles.value}>
             {timeSlot.startTime} - {timeSlot.endTime}
           </ThemedText>
@@ -78,7 +79,7 @@ export function CollectionSummary({
 
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ionicons name="location-outline" size={22} color="#2e7d32" />
+          <Ionicons name="location-outline" size={22} color={theme.theme.colors.success} />
           <ThemedText style={styles.cardTitle}>Location</ThemedText>
         </View>
         
@@ -90,7 +91,7 @@ export function CollectionSummary({
 
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ionicons name="cube-outline" size={22} color="#2e7d32" />
+          <Ionicons name="cube-outline" size={22} color={theme.theme.colors.success} />
           <ThemedText style={styles.cardTitle}>Materials ({materials.length})</ThemedText>
         </View>
         
@@ -100,7 +101,7 @@ export function CollectionSummary({
               <Ionicons 
                 name={(material.material.icon as any) || "cube"} 
                 size={18} 
-                color="#757575" 
+                color={theme.theme.colors.textSecondary} 
               />
               <ThemedText style={styles.materialName}>
                 {material.material.name}
@@ -109,10 +110,10 @@ export function CollectionSummary({
           </View>
         ))}
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: theme.theme.colors.border }]} />
         
         <View style={styles.detailRow}>
-          <ThemedText style={styles.label}>Total Weight:</ThemedText>
+          <ThemedText style={[styles.label, { color: theme.theme.colors.textSecondary }]}>Total Weight:</ThemedText>
           <ThemedText style={styles.value}>
             {estimatedWeight.toFixed(1)} kg
           </ThemedText>
@@ -121,12 +122,12 @@ export function CollectionSummary({
 
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ionicons name="cash-outline" size={22} color="#2e7d32" />
+          <Ionicons name="cash-outline" size={22} color={theme.theme.colors.success} />
           <ThemedText style={styles.cardTitle}>Estimated Credits</ThemedText>
         </View>
         
         <View style={styles.detailRow}>
-          <ThemedText style={styles.creditValue}>
+          <ThemedText style={[styles.creditValue, { color: theme.theme.colors.success }]}>
             {Math.round(totalCredits)} credits
           </ThemedText>
         </View>
@@ -134,16 +135,22 @@ export function CollectionSummary({
 
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
-          <Ionicons name="create-outline" size={22} color="#2e7d32" />
+          <Ionicons name="create-outline" size={22} color={theme.theme.colors.success} />
           <ThemedText style={styles.cardTitle}>Additional Notes</ThemedText>
         </View>
         
         <TextInput
-          style={styles.notesInput}
+          style={[
+            styles.notesInput, 
+            { 
+              borderColor: theme.theme.colors.border,
+              color: theme.theme.colors.text 
+            }
+          ]}
           value={notes}
           onChangeText={onNotesChange}
           placeholder="Add any special instructions for pickup (optional)"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={theme.theme.colors.textSecondary}
           multiline
           numberOfLines={3}
         />
@@ -163,7 +170,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#757575',
     marginBottom: 16,
   },
   card: {
@@ -189,7 +195,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#757575',
   },
   value: {
     fontSize: 14,
@@ -209,17 +214,14 @@ const styles = StyleSheet.create({
   creditValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2e7d32',
     textAlign: 'center',
   },
   divider: {
     height: 1,
-    backgroundColor: '#e0e0e0',
     marginVertical: 12,
   },
   notesInput: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
@@ -227,7 +229,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   errorText: {
-    color: '#f44336',
     textAlign: 'center',
     marginVertical: 24,
     fontSize: 16,

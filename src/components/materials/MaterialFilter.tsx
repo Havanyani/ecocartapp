@@ -1,72 +1,134 @@
 import { useTheme } from '@/hooks/useTheme';
-import { MaterialCategory } from '@/types/Material';
-import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text } from '../ui/Text';
+import { MaterialCategory } from '@/types/materials';
+import React, { memo, useCallback } from 'react';
+import { ScrollView, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 interface MaterialFilterProps {
-  selectedCategory: MaterialCategory | null;
-  onSelectCategory: (category: MaterialCategory | null) => void;
+  categories: MaterialCategory[];
+  selectedCategories: string[];
+  onSelectCategories: (categories: string[]) => void;
+  style?: StyleProp<ViewStyle>;
 }
 
-const CATEGORIES: MaterialCategory[] = ['plastic', 'paper', 'glass', 'metal', 'electronics', 'organic', 'other'];
-
-export function MaterialFilter({ selectedCategory, onSelectCategory }: MaterialFilterProps) {
+/**
+ * A performance-optimized component for filtering materials by category
+ */
+const MaterialFilter = memo(({ 
+  categories, 
+  selectedCategories, 
+  onSelectCategories,
+  style 
+}: MaterialFilterProps) => {
   const { theme } = useTheme();
-
+  
+  const toggleCategory = useCallback((categoryId: string) => {
+    if (selectedCategories.includes(categoryId)) {
+      onSelectCategories(selectedCategories.filter(id => id !== categoryId));
+    } else {
+      onSelectCategories([...selectedCategories, categoryId]);
+    }
+  }, [selectedCategories, onSelectCategories]);
+  
+  const clearFilters = useCallback(() => {
+    onSelectCategories([]);
+  }, [onSelectCategories]);
+  
   return (
-    <View style={styles.container}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity
-          style={[
-            styles.filterItem,
-            { backgroundColor: selectedCategory === null ? theme.colors.primary : theme.colors.background }
-          ]}
-          onPress={() => onSelectCategory(null)}
-        >
-          <Text
-            style={{
-              color: selectedCategory === null ? theme.colors.text.primary : theme.colors.text.secondary
-            }}
+    <View style={[styles.container, style]}>
+      <View style={styles.headerRow}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>
+          Filter by Category
+        </Text>
+        {selectedCategories.length > 0 && (
+          <TouchableOpacity 
+            onPress={clearFilters}
+            style={[styles.clearButton, { borderColor: theme.colors.primary }]}
           >
-            All
-          </Text>
-        </TouchableOpacity>
-        {CATEGORIES.map((category) => (
+            <Text style={[styles.clearButtonText, { color: theme.colors.primary }]}>
+              Clear All
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+      >
+        {categories.map((category) => (
           <TouchableOpacity
-            key={category}
+            key={category.id}
             style={[
-              styles.filterItem,
-              { backgroundColor: selectedCategory === category ? theme.colors.primary : theme.colors.background }
+              styles.categoryButton,
+              { 
+                backgroundColor: selectedCategories.includes(category.id) 
+                  ? theme.colors.primary 
+                  : theme.colors.background,
+                borderColor: theme.colors.border,
+              }
             ]}
-            onPress={() => onSelectCategory(category)}
+            onPress={() => toggleCategory(category.id)}
+            activeOpacity={0.7}
           >
-            <Text
-              style={{
-                color: selectedCategory === category ? theme.colors.text.primary : theme.colors.text.secondary
-              }}
+            <Text 
+              style={[
+                styles.categoryText, 
+                { 
+                  color: selectedCategories.includes(category.id) 
+                    ? theme.colors.background 
+                    : theme.colors.text 
+                }
+              ]}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {category.name}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
     marginVertical: 8,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  filterItem: {
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  clearButton: {
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  categoriesContainer: {
+    paddingVertical: 8,
+    flexDirection: 'row',
+  },
+  categoryButton: {
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
     marginRight: 8,
+    borderWidth: 1,
   },
-}); 
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
+
+export { MaterialFilter };

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoCart Web Diagnostics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #34D399;
+            text-align: center;
+        }
+        .button {
+            background-color: #34D399;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #2eba85;
+        }
+        .diagnostic-section {
+            margin-bottom: 20px;
+        }
+        .results {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #log {
+            height: 200px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EcoCart Web Diagnostics</h1>
+        
+        <div class="diagnostic-section">
+            <h2>Browser Environment</h2>
+            <div id="browser-info" class="results"></div>
+        </div>
+        
+        <div class="diagnostic-section">
+            <h2>Web API Availability</h2>
+            <div id="api-check" class="results"></div>
+        </div>
+        
+        <div class="diagnostic-section">
+            <h2>React Native Web Test</h2>
+            <div id="react-native-test"></div>
+            <button class="button" id="test-react-native">Test React Native Web</button>
+        </div>
+        
+        <div class="diagnostic-section">
+            <h2>Diagnostic Log</h2>
+            <div id="log"></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="button" id="launch-web">Launch Web App (Option 3)</button>
+            <button class="button" id="launch-static">Launch Static HTML (Option 1)</button>
+        </div>
+    </div>
+
+    <script>
+        // Log function
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const logItem = document.createElement('div');
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(logItem);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Display browser info
+        function showBrowserInfo() {
+            const browserInfo = document.getElementById('browser-info');
+            browserInfo.innerHTML = `
+                <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+                <p><strong>Platform:</strong> ${navigator.platform}</p>
+                <p><strong>Browser Language:</strong> ${navigator.language}</p>
+                <p><strong>Screen Resolution:</strong> ${window.screen.width}x${window.screen.height}</p>
+                <p><strong>Window Size:</strong> ${window.innerWidth}x${window.innerHeight}</p>
+            `;
+            log('Browser information collected');
+        }
+
+        // Check API availability
+        function checkAPIAvailability() {
+            const apiCheck = document.getElementById('api-check');
+            const apis = [
+                { name: 'localStorage', available: 'localStorage' in window },
+                { name: 'sessionStorage', available: 'sessionStorage' in window },
+                { name: 'indexedDB', available: 'indexedDB' in window },
+                { name: 'fetch', available: 'fetch' in window },
+                { name: 'WebSockets', available: 'WebSocket' in window },
+                { name: 'WebWorkers', available: 'Worker' in window },
+                { name: 'Battery API', available: 'getBattery' in navigator },
+                { name: 'Geolocation API', available: 'geolocation' in navigator },
+                { name: 'Notifications API', available: 'Notification' in window },
+                { name: 'Web Audio API', available: 'AudioContext' in window }
+            ];
+            
+            let html = '<ul>';
+            apis.forEach(api => {
+                html += `<li><strong>${api.name}:</strong> ${api.available ? '✅ Available' : '❌ Not Available'}</li>`;
+                log(`API Check: ${api.name} - ${api.available ? 'Available' : 'Not Available'}`);
+            });
+            html += '</ul>';
+            
+            apiCheck.innerHTML = html;
+        }
+
+        // Test React Native Web
+        document.getElementById('test-react-native').addEventListener('click', function() {
+            const testContainer = document.getElementById('react-native-test');
+            
+            try {
+                // Create a simple React Native Web element
+                const div = document.createElement('div');
+                div.style.backgroundColor = '#34D399';
+                div.style.padding = '10px';
+                div.style.borderRadius = '4px';
+                div.style.marginTop = '10px';
+                div.style.color = 'white';
+                div.style.textAlign = 'center';
+                div.textContent = 'React Native Web would render here if working properly.';
+                
+                testContainer.innerHTML = '';
+                testContainer.appendChild(div);
+                
+                log('React Native Web test component created');
+            } catch (error) {
+                log('Error in React Native Web test: ' + error.message);
+                testContainer.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+            }
+        });
+        
+        // Launch buttons
+        document.getElementById('launch-web').addEventListener('click', function() {
+            log('Attempting to launch Web App (Option 3)...');
+            window.location.href = './web/index.html';
+        });
+        
+        document.getElementById('launch-static').addEventListener('click', function() {
+            log('Attempting to launch Static HTML (Option 1)...');
+            window.location.href = './basic-test.html';
+        });
+
+        // Initialize tests
+        window.addEventListener('load', function() {
+            log('Web Diagnostics initialized');
+            showBrowserInfo();
+            checkAPIAvailability();
+        });
+    </script>
+</body>
+</html> 

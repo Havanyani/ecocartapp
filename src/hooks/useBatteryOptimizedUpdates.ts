@@ -1,8 +1,29 @@
-import BatteryOptimizer, { BatteryLevel, LocationAccuracySettings } from '@/utils/BatteryOptimizer';
+import { BatteryLevel, LocationAccuracySettings } from '@/utils/BatteryOptimizer';
 import { SafeStorage } from '@/utils/storage';
-import * as Battery from 'expo-battery';
-import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+
+// Import cross-platform Battery module
+import Battery, { BatteryState } from '@/utils/cross-platform/battery';
+
+// Conditionally import expo-location
+let Location: any = {
+  requestForegroundPermissionsAsync: async () => ({ status: 'granted' }),
+  PermissionStatus: {
+    UNDETERMINED: 'undetermined',
+    GRANTED: 'granted',
+    DENIED: 'denied'
+  }
+};
+
+// Try to load Location on native platforms
+if (Platform.OS !== 'web') {
+  try {
+    Location = require('expo-location');
+  } catch (err) {
+    console.warn('Failed to load expo-location module:', err);
+  }
+}
 
 // Storage key for battery optimization settings
 const BATTERY_OPTIMIZATION_SETTINGS_KEY = 'ecocart_battery_optimization_settings';
@@ -12,7 +33,7 @@ const BATTERY_OPTIMIZATION_SETTINGS_KEY = 'ecocart_battery_optimization_settings
  */
 export interface UseBatteryOptimizedUpdatesReturn {
   isEnabled: boolean;
-  batteryState: Battery.BatteryState;
+  batteryState: number;
   batteryLevel: number;
   batteryLevelCategory: BatteryLevel;
   updateInterval: number;
@@ -29,88 +50,125 @@ export interface UseBatteryOptimizedUpdatesReturn {
  * battery optimization settings.
  */
 export function useBatteryOptimizedUpdates(): UseBatteryOptimizedUpdatesReturn {
-  const [batteryState, setBatteryState] = useState<Battery.BatteryState>(Battery.BatteryState.UNKNOWN);
+  const [batteryState, setBatteryState] = useState<number>(BatteryState.UNKNOWN);
   const [batteryLevel, setBatteryLevel] = useState<number>(1.0);
   const [isEnabled, setIsEnabled] = useState<boolean>(true);
   const [locationAccuracy, setLocationAccuracySetting] = useState<LocationAccuracySettings>(LocationAccuracySettings.MEDIUM);
   const [backgroundUpdatesEnabled, setBackgroundUpdatesEnabled] = useState<boolean>(true);
   const [updateInterval, setUpdateInterval] = useState<number>(30000); // Default 30 seconds
-  const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus>(Location.PermissionStatus.UNDETERMINED);
+  const [permissionStatus, setPermissionStatus] = useState<string>(Location.PermissionStatus.UNDETERMINED);
   
   // Initialize settings and listeners
   useEffect(() => {
-    const batteryOptimizer = BatteryOptimizer;
+    const loadBatteryStatus = async () => {
+      try {
+        // Get initial battery state
+        const state = await Battery.getBatteryStateAsync();
+        const level = await Battery.getBatteryLevelAsync();
+        
+        setBatteryState(state);
+        setBatteryLevel(level);
+        
+        // Load optimizer settings if available
+        const storedSettings = await SafeStorage.getItem(BATTERY_OPTIMIZATION_SETTINGS_KEY);
+        if (storedSettings) {
+          const settings = JSON.parse(storedSettings);
+          setIsEnabled(settings.enabled ?? true);
+          setLocationAccuracySetting(settings.locationAccuracy ?? LocationAccuracySettings.MEDIUM);
+          setBackgroundUpdatesEnabled(settings.backgroundUpdatesEnabled ?? true);
+        }
+        
+        // Calculate optimal update interval based on battery level
+        updateOptimalInterval(state, level);
+      } catch (error) {
+        console.warn('Error loading battery status:', error);
+      }
+    };
     
-    // Load initial state from BatteryOptimizer
-    setBatteryState(batteryOptimizer.getBatteryState());
-    setBatteryLevel(batteryOptimizer.getBatteryLevel());
-    setIsEnabled(batteryOptimizer.isEnabled());
-    setLocationAccuracySetting(batteryOptimizer.getLocationAccuracy());
-    setBackgroundUpdatesEnabled(batteryOptimizer.isBackgroundUpdatesEnabled());
-    setUpdateInterval(batteryOptimizer.getOptimalUpdateInterval());
-    
-    // Add listener for changes
-    const cleanup = batteryOptimizer.addListener(() => {
-      setBatteryState(batteryOptimizer.getBatteryState());
-      setBatteryLevel(batteryOptimizer.getBatteryLevel());
-      setUpdateInterval(batteryOptimizer.getOptimalUpdateInterval());
-    });
+    const updateOptimalInterval = (state: number, level: number) => {
+      let interval = 30000; // Default 30 seconds
+      
+      if (state === BatteryState.UNPLUGGED) {
+        if (level <= 0.15) {
+          interval = 180000; // 3 minutes for critical battery
+        } else if (level <= 0.3) {
+          interval = 60000; // 1 minute for low battery
+        }
+      } else if (state === BatteryState.CHARGING) {
+        interval = 15000; // 15 seconds when charging
+      } else if (state === BatteryState.FULL) {
+        interval = 10000; // 10 seconds when full
+      }
+      
+      setUpdateInterval(interval);
+    };
     
     // Check for location permissions
     const checkPermissions = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setPermissionStatus(status);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        setPermissionStatus(status);
+      } catch (error) {
+        console.warn('Error checking location permissions:', error);
+        setPermissionStatus('denied');
+      }
     };
     
+    loadBatteryStatus();
     checkPermissions();
     
-    return cleanup;
+    // Set up interval to periodically check battery
+    const intervalId = setInterval(loadBatteryStatus, 60000); // Check every minute
+    
+    return () => clearInterval(intervalId);
   }, []);
   
   // Toggle battery optimization
   const toggleOptimization = useCallback(async (): Promise<void> => {
-    const batteryOptimizer = BatteryOptimizer;
-    const newEnabledState = !batteryOptimizer.isEnabled();
-    
-    await batteryOptimizer.setEnabled(newEnabledState);
+    const newEnabledState = !isEnabled;
     setIsEnabled(newEnabledState);
-    setUpdateInterval(batteryOptimizer.getOptimalUpdateInterval());
     
     // Save setting
     await SafeStorage.setItem(
       BATTERY_OPTIMIZATION_SETTINGS_KEY, 
-      JSON.stringify({ enabled: newEnabledState })
+      JSON.stringify({ 
+        enabled: newEnabledState,
+        locationAccuracy,
+        backgroundUpdatesEnabled
+      })
     );
-  }, []);
+  }, [isEnabled, locationAccuracy, backgroundUpdatesEnabled]);
   
   // Set location accuracy
   const setLocationAccuracy = useCallback(async (accuracy: LocationAccuracySettings): Promise<void> => {
-    const batteryOptimizer = BatteryOptimizer;
-    
-    await batteryOptimizer.setLocationAccuracy(accuracy);
     setLocationAccuracySetting(accuracy);
     
     // Save setting
     await SafeStorage.setItem(
       BATTERY_OPTIMIZATION_SETTINGS_KEY, 
-      JSON.stringify({ locationAccuracy: accuracy })
+      JSON.stringify({
+        enabled: isEnabled,
+        locationAccuracy: accuracy,
+        backgroundUpdatesEnabled
+      })
     );
-  }, []);
+  }, [isEnabled, backgroundUpdatesEnabled]);
   
   // Toggle background updates
   const toggleBackgroundUpdates = useCallback(async (): Promise<void> => {
-    const batteryOptimizer = BatteryOptimizer;
-    const newState = !batteryOptimizer.isBackgroundUpdatesEnabled();
-    
-    await batteryOptimizer.setBackgroundUpdatesEnabled(newState);
+    const newState = !backgroundUpdatesEnabled;
     setBackgroundUpdatesEnabled(newState);
     
     // Save setting
     await SafeStorage.setItem(
       BATTERY_OPTIMIZATION_SETTINGS_KEY, 
-      JSON.stringify({ backgroundUpdatesEnabled: newState })
+      JSON.stringify({
+        enabled: isEnabled,
+        locationAccuracy,
+        backgroundUpdatesEnabled: newState
+      })
     );
-  }, []);
+  }, [isEnabled, locationAccuracy, backgroundUpdatesEnabled]);
   
   // Calculate the battery level category
   const batteryLevelCategory = (() => {

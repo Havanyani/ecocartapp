@@ -1,0 +1,90 @@
+EcoCart Privacy Policy
+
+Last Updated: April 4, 2025
+
+Introduction
+
+Welcome to EcoCart! This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and related services. We value your privacy and are committed to protecting your personal information. By accessing or using our Service, you acknowledge that you have read and understood this Privacy Policy.
+
+Information We Collect
+
+Information You Provide to Us
+
+- Account Information: When you create an account, we collect your name, email address, phone number, and password.
+- Profile Information: Any information you provide in your user profile, including profile picture, address, and preferences.
+- Collection Requests: Details about your recycling collection requests, including location, materials, and scheduling information.
+- Communications: Information you provide when contacting our customer service or participating in surveys or promotions.
+
+Information We Collect Automatically
+
+- Device Information: We collect information about your mobile device, including device type, operating system, unique device identifiers, mobile network information, and device settings.
+- Usage Information: Details about how you use our app, including app features you use, time spent on the app, and interaction with features.
+- Location Information: With your permission, we collect precise location data to provide location-based services such as finding nearby collection points and scheduling pickups.
+
+How We Use Your Information
+
+We use the information we collect to:
+
+- Provide, maintain, and improve our services
+- Process and manage your collection requests
+- Send notifications about your account, collection status, and service updates
+- Communicate with you about products, services, offers, and promotions
+- Monitor and analyze usage trends and preferences
+- Enhance the safety and security of our services
+- Prevent, detect, and address fraud and other illegal activities
+- Comply with legal obligations
+
+Sharing of Information
+
+We may share your information in the following situations:
+
+- With Service Providers: We may share your information with third-party vendors who provide services on our behalf, such as payment processing, data analysis, and customer service.
+- With Partners: We may share information with business partners to offer you certain products, services, or promotions.
+- For Legal Reasons: We may disclose your information if we believe it is necessary to comply with a legal obligation, protect our rights or safety, or investigate suspected fraud.
+- Business Transfers: If we are involved in a merger, acquisition, or sale of all or a portion of our assets, your information may be transferred as part of that transaction.
+
+We will not sell your personal information to third parties.
+
+Your Choices
+
+You have several choices regarding the information you provide to us:
+
+- Account Information: You can review and update your account information through your account settings.
+- Permission Settings: You can change your device's permission settings to limit our collection of certain information, such as location data.
+- Marketing Communications: You can opt out of receiving promotional emails by following the instructions in those emails or by adjusting your notification settings.
+- Data Access: You can request access to the data we hold about you, or request that we delete your data, subject to certain limitations.
+
+Data Security
+
+We implement appropriate technical and organizational measures to protect the security of your personal information. However, please be aware that no method of electronic storage or transmission is 100% secure, and we cannot guarantee absolute security.
+
+Children's Privacy
+
+Our Service is not directed to children under the age of 13, and we do not knowingly collect personal information from children under 13. If we learn that we have collected personal information from a child under 13, we will promptly delete that information.
+
+International Data Transfers
+
+Your information may be transferred to, and processed in, countries other than the country in which you reside. These countries may have data protection laws that are different from the laws of your country.
+
+Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this Privacy Policy periodically for any changes.
+
+Contact Us
+
+If you have any questions about this Privacy Policy or our privacy practices, please contact us at:
+
+Email: privacy@ecocart.app
+Address: EcoCart Inc., 123 Green Street, Eco City, EC 12345
+
+Your Rights
+
+Depending on your location, you may have certain rights regarding your personal information, including the right to:
+
+- Access your personal information
+- Correct inaccurate or incomplete information
+- Request deletion of your personal information
+- Restrict or object to certain processing of your information
+- Data portability
+
+To exercise these rights, please contact us using the information provided in the "Contact Us" section above. 

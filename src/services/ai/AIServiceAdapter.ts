@@ -7,8 +7,10 @@
  */
 
 import { faqData } from '@/data/faq-data';
-import { isConnected } from '@/utils/network';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+import pako from 'pako';
+import { RequestPriority, RequestQueue } from '../network/RequestQueue';
 
 // Key for storing API key in secure storage
 const API_KEY_STORAGE_KEY = 'ai_service_api_key';
@@ -33,6 +35,14 @@ export interface AIServiceAdapter {
     message: string, 
     conversationHistory: Array<{role: string, content: string}>
   ): Promise<string>;
+  
+  /**
+   * Generate a short summary of the given text
+   * @param text The text to summarize
+   * @param maxLength The maximum length of the summary
+   * @returns Promise resolving to the summary
+   */
+  generateSummary(text: string, maxLength: number): Promise<string>;
   
   /**
    * Check if the AI service is configured with valid credentials
@@ -62,6 +72,21 @@ export interface OpenAIConfig {
   maxTokens?: number;
   temperature?: number;
   basePrompt?: string;
+  enableCompression?: boolean;
+  enableStreamingResponse?: boolean;
+}
+
+/**
+ * Fields to include in payload when compression is enabled
+ * Used for selective field inclusion optimization
+ */
+interface CompressedPayloadFields {
+  content: boolean;
+  role: boolean;
+  model: boolean;
+  max_tokens: boolean;
+  temperature: boolean;
+  // Add other fields as needed
 }
 
 /**
@@ -74,10 +99,24 @@ export class OpenAIAdapter implements AIServiceAdapter {
   private readonly modelName = 'gpt-3.5-turbo';
   private rateLimitCounter = 0;
   private lastRequestTime = 0;
+  private requestQueue: RequestQueue;
+  private readonly compressionThreshold = 1024; // 1KB
+  private readonly enableCompression: boolean = true;
+  private readonly enableStreamingResponse: boolean = false;
   
-  constructor() {
+  constructor(config?: OpenAIConfig) {
     // Initialize rate limiting
     this.resetRateLimit();
+    
+    // Initialize configuration
+    if (config) {
+      if (config.apiKey) this.apiKey = config.apiKey;
+      if (config.enableCompression !== undefined) this.enableCompression = config.enableCompression;
+      if (config.enableStreamingResponse !== undefined) this.enableStreamingResponse = config.enableStreamingResponse;
+    }
+    
+    // Get the request queue instance
+    this.requestQueue = RequestQueue.getInstance();
   }
 
   /**
@@ -130,7 +169,7 @@ export class OpenAIAdapter implements AIServiceAdapter {
       throw new Error('OpenAI API key not configured');
     }
     
-    if (!await isConnected()) {
+    if (!await NetInfo.fetch().then(state => state.isConnected)) {
       throw new Error('No network connection available');
     }
     
@@ -149,42 +188,181 @@ export class OpenAIAdapter implements AIServiceAdapter {
         { role: 'user', content: message }
       ];
       
-      // Make API request
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: this.modelName,
-          messages,
-          max_tokens: 500,
-          temperature: 0.7
-        })
-      });
+      // Optimize the payload by selecting only necessary fields
+      const optimizedMessages = this.optimizeMessages(messages);
       
-      // Handle API response
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('OpenAI API error:', errorData);
-        
-        if (response.status === 401) {
-          // Invalid API key
-          await this.clearApiKey();
-          throw new Error('Invalid API key. Please reconfigure your AI settings.');
-        }
-        
-        throw new Error(`API error: ${errorData.error?.message || 'Unknown error'}`);
+      // Prepare the request body
+      const requestBody = {
+        model: this.modelName,
+        messages: optimizedMessages,
+        max_tokens: 500,
+        temperature: 0.7,
+        stream: this.enableStreamingResponse
+      };
+      
+      // Compress the request body if enabled and size is above threshold
+      const bodyString = JSON.stringify(requestBody);
+      let finalBody: string | Uint8Array = bodyString;
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      };
+      
+      if (this.enableCompression && bodyString.length > this.compressionThreshold) {
+        // Compress using pako
+        const compressed = pako.deflate(bodyString);
+        finalBody = compressed;
+        headers['Content-Encoding'] = 'gzip';
       }
       
-      const data = await response.json();
-      return data.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
+      // Use the request queue to manage the request with HIGH priority
+      const response = await this.makeAPIRequest(finalBody, headers);
       
+      if (this.enableStreamingResponse) {
+        // Handle streaming response
+        return this.handleStreamingResponse(response);
+      } else {
+        // Handle regular response
+        return this.handleRegularResponse(response);
+      }
     } catch (error) {
       console.error('Error generating response from OpenAI:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Make an API request with optimized network handling
+   */
+  private async makeAPIRequest(
+    body: string | Uint8Array, 
+    headers: Record<string, string>
+  ): Promise<Response> {
+    // Use the RequestQueue to manage the request with HIGH priority
+    return await this.requestQueue.post(
+      this.apiUrl,
+      body,
+      { 
+        headers,
+        timeout: 30000,  // 30 second timeout
+        responseType: this.enableStreamingResponse ? 'stream' : 'json'
+      },
+      RequestPriority.HIGH
+    );
+  }
+  
+  /**
+   * Handle a regular (non-streaming) response
+   */
+  private async handleRegularResponse(response: Response): Promise<string> {
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      
+      if (response.status === 401) {
+        // Invalid API key
+        await this.clearApiKey();
+        throw new Error('Invalid API key. Please reconfigure your AI settings.');
+      }
+      
+      throw new Error(`API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
+  }
+  
+  /**
+   * Handle a streaming response
+   */
+  private async handleStreamingResponse(response: Response): Promise<string> {
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      
+      if (response.status === 401) {
+        // Invalid API key
+        await this.clearApiKey();
+        throw new Error('Invalid API key. Please reconfigure your AI settings.');
+      }
+      
+      throw new Error(`API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+    
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Stream reader not available');
+    }
+    
+    let completeResponse = '';
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+        
+        // Convert the chunk to text
+        const chunk = new TextDecoder().decode(value);
+        
+        // Process the SSE format
+        const lines = chunk
+          .split('\n')
+          .filter(line => line.startsWith('data: ') && !line.includes('[DONE]'));
+        
+        for (const line of lines) {
+          try {
+            const jsonStr = line.substring(6); // Remove 'data: '
+            const json = JSON.parse(jsonStr);
+            const content = json.choices[0]?.delta?.content || '';
+            completeResponse += content;
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    
+    return completeResponse || 'Sorry, I couldn\'t generate a response.';
+  }
+  
+  /**
+   * Clear the API key
+   */
+  private async clearApiKey(): Promise<void> {
+    this.apiKey = null;
+    try {
+      await AsyncStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.error('Error clearing API key:', error);
+    }
+  }
+  
+  /**
+   * Optimize messages by removing unnecessary fields and content
+   */
+  private optimizeMessages(messages: Array<{role: string, content: string}>): Array<any> {
+    return messages.map(message => {
+      const result: any = { role: message.role };
+      
+      // For system messages, include full content
+      if (message.role === 'system') {
+        result.content = message.content;
+      } else {
+        // For user and assistant messages, trim content if very long
+        if (message.content.length > 2000) {
+          result.content = message.content.substring(0, 2000) + '...';
+        } else {
+          result.content = message.content;
+        }
+      }
+      
+      return result;
+    });
   }
   
   /**
@@ -221,7 +399,69 @@ If asked about EcoCart features, provide accurate information based on the follo
   }
   
   /**
-   * Check if the API key is configured
+   * Generate a summary of a text using OpenAI
+   */
+  async generateSummary(text: string, maxLength: number = 150): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    
+    if (!await NetInfo.fetch().then(state => state.isConnected)) {
+      throw new Error('No network connection available');
+    }
+    
+    if (this.shouldRateLimit()) {
+      throw new Error('Rate limit exceeded. Please try again later.');
+    }
+    
+    try {
+      // Prompt for summarization
+      const summaryPrompt = `Please summarize the following text in approximately ${maxLength} characters or less:\n\n${text}`;
+      
+      // Prepare the messages
+      const messages = [
+        { role: 'system', content: 'You are a helpful assistant that summarizes text concisely.' },
+        { role: 'user', content: summaryPrompt }
+      ];
+      
+      // Optimize the messages
+      const optimizedMessages = this.optimizeMessages(messages);
+      
+      // Prepare the request body
+      const requestBody = {
+        model: this.modelName,
+        messages: optimizedMessages,
+        max_tokens: 150,
+        temperature: 0.3 // Lower temperature for more deterministic summary
+      };
+      
+      // Compress the request body if enabled and size is above threshold
+      const bodyString = JSON.stringify(requestBody);
+      let finalBody: string | Uint8Array = bodyString;
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      };
+      
+      if (this.enableCompression && bodyString.length > this.compressionThreshold) {
+        // Compress using pako
+        const compressed = pako.deflate(bodyString);
+        finalBody = compressed;
+        headers['Content-Encoding'] = 'gzip';
+      }
+      
+      // Use the request queue with NORMAL priority
+      const response = await this.makeAPIRequest(finalBody, headers);
+      
+      return this.handleRegularResponse(response);
+    } catch (error) {
+      console.error('Error generating summary from OpenAI:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Check if the service is configured with an API key
    */
   async isConfigured(): Promise<boolean> {
     if (this.apiKey) {
@@ -230,45 +470,29 @@ If asked about EcoCart features, provide accurate information based on the follo
     
     try {
       const storedKey = await AsyncStorage.getItem(this.storageKey);
-      this.apiKey = storedKey;
       return !!storedKey;
     } catch (error) {
-      console.error('Error checking OpenAI configuration:', error);
+      console.error('Error checking if OpenAI is configured:', error);
       return false;
     }
   }
   
   /**
-   * Set the API key and store it securely
+   * Set the API key for this service
    */
   async setApiKey(apiKey: string): Promise<void> {
-    if (!apiKey || apiKey.trim().length < 10) {
-      throw new Error('Invalid API key format');
-    }
+    this.apiKey = apiKey;
     
     try {
       await AsyncStorage.setItem(this.storageKey, apiKey);
-      this.apiKey = apiKey;
     } catch (error) {
-      console.error('Error storing OpenAI API key:', error);
-      throw new Error('Failed to store API key securely');
+      console.error('Error saving API key:', error);
+      throw error;
     }
   }
   
   /**
-   * Clear the API key from storage
-   */
-  private async clearApiKey(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(this.storageKey);
-      this.apiKey = null;
-    } catch (error) {
-      console.error('Error clearing OpenAI API key:', error);
-    }
-  }
-  
-  /**
-   * Get the service name
+   * Get the name of this service
    */
   getServiceName(): string {
     return 'OpenAI';

@@ -1,9 +1,9 @@
+import { VictoryAxis, VictoryBar, VictoryChart, VictoryLine } from '@/components/ui/VictoryChartAdapter';
 import * as FileSystem from 'expo-file-system';
 import React from 'react';
 import { View } from 'react-native';
 import { PDFDocument, rgb } from 'react-native-pdf-lib';
 import { captureRef } from 'react-native-view-shot';
-import { VictoryAxis, VictoryBar, VictoryChart, VictoryLine } from 'victory-native';
 import { Metrics, TestResult } from './TestResultExporter';
 
 interface ChartData {

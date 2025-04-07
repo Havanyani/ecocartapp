@@ -5,7 +5,7 @@
  * including status updates, collection notes, and actions.
  */
 
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
@@ -33,7 +33,7 @@ export default function CollectionDetailScreen({ route, navigation }: Collection
   const { collectionId } = route.params;
   const { user } = useAuth();
   const { isOnline } = useNetworkStatus();
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   
   const [collection, setCollection] = useState<Collection | null>(null);
   const [isLoading, setIsLoading] = useState(true);

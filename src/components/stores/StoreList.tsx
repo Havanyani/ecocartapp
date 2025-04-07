@@ -3,7 +3,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useGroceryStore } from '@/hooks/useGroceryStore';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { GroceryStore } from '@/types/GroceryStore';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -13,7 +13,7 @@ interface StoreListProps {
 }
 
 export function StoreList({ onStoreSelect }: StoreListProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { stores, isLoading, error, searchStores } = useGroceryStore();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,7 +49,7 @@ export function StoreList({ onStoreSelect }: StoreListProps) {
         <ThemedText style={styles.storeName}>{item.name}</ThemedText>
         <ThemedText style={styles.storeAddress}>{item.address}</ThemedText>
       </View>
-      <IconSymbol name="chevron-right" size={24} color={theme.colors.text.secondary} />
+      <IconSymbol name="chevron-right" size={24} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   );
 

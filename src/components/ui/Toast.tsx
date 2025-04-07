@@ -1,4 +1,5 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
+import { createShadow } from '@/utils/styleUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -28,7 +29,8 @@ export function Toast({
   onClose,
   action,
 }: ToastProps) {
-  const { theme } = useTheme();
+  const themeFunc = useTheme();
+  const theme = themeFunc();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -144,11 +146,12 @@ const styles = StyleSheet.create({
     right: 0,
     borderRadius: 12,
     borderWidth: 1,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    ...createShadow({
+      offsetY: 2,
+      opacity: 0.25,
+      radius: 4,
+      elevation: 4
+    }),
   },
   content: {
     flexDirection: 'row',

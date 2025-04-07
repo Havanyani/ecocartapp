@@ -1,9 +1,9 @@
+import { useTheme } from '@/theme';
 import { Image } from 'expo-image';
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useCommunity } from '../../hooks/useCommunity';
 import { useOfflineState } from '../../hooks/useOfflineState';
-import { useTheme } from '../../hooks/useTheme';
 import { Comment, CommunityPost } from '../../services/CommunityService';
 import { Button } from '../ui/Button';
 import { IconSymbol } from '../ui/IconSymbol';
@@ -22,7 +22,7 @@ interface PostItemProps {
 
 // Memoize the PostItem to prevent unnecessary re-renders
 const PostItem = memo(({ post, onLike, onComment, onLoadComments, comments, isCommentsLoading }: PostItemProps) => {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showMediaViewer, setShowMediaViewer] = useState(false);
@@ -169,7 +169,7 @@ const PostItem = memo(({ post, onLike, onComment, onLoadComments, comments, isCo
 });
 
 export function CommunityFeed() {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
   const { isOnline } = useOfflineState();
   
   const {

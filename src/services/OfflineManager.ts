@@ -2,13 +2,14 @@
  * OfflineManager.ts
  * 
  * Comprehensive service for managing offline data operations in the EcoCart app.
- * Coordinates between OfflineStorageService, SyncService, and ConflictResolution.
+ * Coordinates between StorageService, SyncService, and ConflictResolution.
  */
 
+import apiClient from '@/api/ApiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { NetInfoState, NetInfoSubscription } from '@react-native-community/netinfo';
 import { AppState, AppStateStatus } from 'react-native';
 import { ConflictResolution, ResolutionStrategy } from './ConflictResolution';
-import { OfflineStorageService } from './OfflineStorageService';
 import { SyncService } from './SyncService';
 
 // Entity types that can be stored offline
@@ -33,6 +34,19 @@ export interface OfflineOperationConfig {
   priority: 'high' | 'medium' | 'low';
   ttl?: number; // Time-to-live for cached data in milliseconds
   conflictStrategy?: ResolutionStrategy;
+}
+
+// Queue item for offline operations
+export interface OfflineQueueItem<T = any> {
+  id: string;
+  entityType: EntityType;
+  operation: OperationType;
+  data: T;
+  entityId?: string;
+  timestamp: number;
+  retryCount: number;
+  priority: 'high' | 'medium' | 'low';
+  error?: string;
 }
 
 // Default configurations by entity type
@@ -64,27 +78,38 @@ export interface SyncStats {
   byEntityType: Record<EntityType, number>;
 }
 
+// Storage keys
+const OFFLINE_QUEUE_KEY = '@ecocart:offline_queue';
+const OFFLINE_CACHE_PREFIX = '@ecocart:offline_cache:';
+const LAST_SYNC_KEY = '@ecocart:last_sync';
+const OFFLINE_STATS_KEY = '@ecocart:offline_stats';
+
 /**
  * Main class for managing offline operations
  */
 export class OfflineManager {
   private static instance: OfflineManager;
-  private offlineStorage: OfflineStorageService;
   private syncService: SyncService;
   private netInfoSubscription: NetInfoSubscription | null = null;
   private appStateSubscription: any = null;
-  private networkStatus: boolean = true;
+  private isOnline: boolean = true;
   private _status: OfflineStatus = 'online';
   private statusListeners: ((status: OfflineStatus) => void)[] = [];
+  private offlineQueue: OfflineQueueItem[] = [];
+  private processingQueue: boolean = false;
+  private maxRetries: number = 5;
+  private syncInterval: any = null;
+  private syncIntervalTime: number = 60000; // 1 minute
+  private initialized: boolean = false;
+  
+  // Maps to store entity type specific merge functions
+  private mergeFunctions: Map<string, (local: any, remote: any) => any> = new Map();
 
+  /**
+   * Private constructor for singleton pattern
+   */
   private constructor() {
-    this.offlineStorage = OfflineStorageService.getInstance();
     this.syncService = SyncService.getInstance();
-    this.initNetworkListeners();
-    this.initAppStateListeners();
-    
-    // Register merge functions for different entity types
-    this.registerMergeFunctions();
   }
 
   /**
@@ -98,13 +123,42 @@ export class OfflineManager {
   }
 
   /**
-   * Initialize network state listeners
+   * Initialize the offline manager
+   */
+  public async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
+    try {
+      // Load offline queue
+      await this.loadOfflineQueue();
+      
+      // Initialize network listeners
+      this.initNetworkListeners();
+      
+      // Initialize app state listeners
+      this.initAppStateListeners();
+      
+      // Start sync interval
+      this.startSyncInterval();
+      
+      this.initialized = true;
+      console.log('OfflineManager initialized successfully');
+      
+      // Check network status
+      const networkState = await NetInfo.fetch();
+      await this.handleNetworkChange(networkState);
+      
+    } catch (error) {
+      console.error('Error initializing OfflineManager:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize network listeners
    */
   private initNetworkListeners(): void {
     this.netInfoSubscription = NetInfo.addEventListener(this.handleNetworkChange);
-    
-    // Get initial network state
-    NetInfo.fetch().then(this.handleNetworkChange);
   }
 
   /**
@@ -117,22 +171,18 @@ export class OfflineManager {
   /**
    * Handle network state changes
    */
-  private handleNetworkChange = (state: NetInfoState): void => {
+  private handleNetworkChange = async (state: NetInfoState): Promise<void> => {
     const isConnected = state.isConnected === true && state.isInternetReachable !== false;
     
     // Only trigger actions if network status has changed
-    if (this.networkStatus !== isConnected) {
-      this.networkStatus = isConnected;
+    if (this.isOnline !== isConnected) {
+      this.isOnline = isConnected;
       
       if (isConnected) {
+        // If coming back online, process queue
         this.updateStatus('syncing');
-        this.syncService.triggerSync('network_reconnection')
-          .then(() => {
-            this.updateStatus('online');
-          })
-          .catch(() => {
-            this.updateStatus('online'); // Still update to online even if sync fails
-          });
+        await this.processOfflineQueue();
+        this.updateStatus('online');
       } else {
         this.updateStatus('offline');
       }
@@ -142,16 +192,12 @@ export class OfflineManager {
   /**
    * Handle app state changes
    */
-  private handleAppStateChange = (nextAppState: AppStateStatus): void => {
-    if (nextAppState === 'active' && this.networkStatus) {
+  private handleAppStateChange = async (nextAppState: AppStateStatus): Promise<void> => {
+    if (nextAppState === 'active' && this.isOnline) {
+      // When app comes to foreground, try to sync
       this.updateStatus('syncing');
-      this.syncService.triggerSync('app_foreground')
-        .then(() => {
-          this.updateStatus(this.networkStatus ? 'online' : 'offline');
-        })
-        .catch(() => {
-          this.updateStatus(this.networkStatus ? 'online' : 'offline');
-        });
+      await this.processOfflineQueue();
+      this.updateStatus(this.isOnline ? 'online' : 'offline');
     }
   };
 
@@ -164,24 +210,25 @@ export class OfflineManager {
   }
 
   /**
-   * Register merge functions for conflict resolution
+   * Start automatic sync interval
    */
-  private registerMergeFunctions(): void {
-    // Register collection merge function
-    ConflictResolution.registerMergeFunction('collection', (local, remote) => {
-      // Simple merge strategy - keep all fields from both
-      return { ...remote, ...local };
-    });
+  private startSyncInterval(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+    }
     
-    // Register impact merge function - sum the values
-    ConflictResolution.registerMergeFunction('impact', (local, remote) => {
-      return {
-        ...remote,
-        plasticSaved: (local.plasticSaved || 0) + (remote.plasticSaved || 0),
-        co2Reduced: (local.co2Reduced || 0) + (remote.co2Reduced || 0),
-        treesEquivalent: (local.treesEquivalent || 0) + (remote.treesEquivalent || 0),
-      };
-    });
+    this.syncInterval = setInterval(async () => {
+      if (this.isOnline && this.offlineQueue.length > 0) {
+        try {
+          this.updateStatus('syncing');
+          await this.processOfflineQueue();
+          this.updateStatus('online');
+        } catch (error) {
+          console.error('Error processing queue on interval:', error);
+          this.updateStatus('online');
+        }
+      }
+    }, this.syncIntervalTime);
   }
 
   /**
@@ -189,6 +236,9 @@ export class OfflineManager {
    */
   public subscribeToStatusChanges(callback: (status: OfflineStatus) => void): () => void {
     this.statusListeners.push(callback);
+    
+    // Immediately call with current status
+    callback(this._status);
     
     // Return unsubscribe function
     return () => {
@@ -205,231 +255,543 @@ export class OfflineManager {
 
   /**
    * Execute an operation with automatic offline handling
-   * @param entityType The type of entity being operated on
-   * @param operation The type of operation
-   * @param data The data for the operation
-   * @param id Optional entity ID for updates/deletes
-   * @param config Optional configuration overrides
    */
-  public async executeOperation<T>(
-    entityType: EntityType,
-    operation: OperationType,
-    data: T,
-    id?: string,
-    config?: Partial<OfflineOperationConfig>
-  ): Promise<T> {
+  public async executeWithOfflineHandling<T>(params: {
+    entityType: EntityType;
+    operation: OperationType;
+    data: T;
+    entityId?: string;
+    apiCall?: () => Promise<T>;
+    config?: Partial<OfflineOperationConfig>;
+  }): Promise<T> {
+    // Ensure we're initialized
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    
+    const { entityType, operation, data, entityId, apiCall, config } = params;
+    
     // Merge config with defaults
     const operationConfig = {
       ...DEFAULT_CONFIGS[entityType],
       ...config
     };
     
-    // If online, try to perform the operation directly
-    if (this.networkStatus && operation !== 'query') {
+    // For read operations, try to get from cache first
+    if (operation === 'query') {
       try {
-        // Would normally call API here
-        console.log(`Executing ${operation} operation on ${entityType} online`);
+        // If we have a cached version and it's not expired, return it
+        const cacheKey = `${entityType}:${entityId || 'list'}`;
+        const cachedData = await this.getCachedData<T>(cacheKey);
         
-        // If successful, also update local cache (except for delete)
-        if (operation !== 'delete') {
-          const cacheKey = `${entityType}:${id || 'new'}`;
-          await this.offlineStorage.cacheData(cacheKey, data, operationConfig.ttl || 0);
+        if (cachedData) {
+          return cachedData;
         }
-        
-        return data;
       } catch (error) {
-        console.error(`Online operation failed, falling back to offline mode: ${error}`);
-        // Fall through to offline handling
+        console.error('Error accessing cache:', error);
       }
     }
     
-    // Handle based on operation type
-    switch (operation) {
-      case 'create':
-        return this.handleCreateOffline(entityType, data, operationConfig);
-      case 'update':
-        return this.handleUpdateOffline(entityType, id!, data, operationConfig);
-      case 'delete':
-        return this.handleDeleteOffline(entityType, id!, operationConfig) as T;
-      case 'query':
-        return this.handleQueryOffline(entityType, id, operationConfig);
+    // If online and we have an API call function, execute it directly
+    if (this.isOnline && apiCall) {
+      try {
+        const result = await apiCall();
+        
+        // Cache the result if it's a read operation
+        if (operation === 'query') {
+          const cacheKey = `${entityType}:${entityId || 'list'}`;
+          await this.cacheData(cacheKey, result, operationConfig.ttl || 0);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error(`Error executing operation online:`, error);
+        
+        // If it's a read operation, try to get from cache as fallback
+        if (operation === 'query') {
+          const cacheKey = `${entityType}:${entityId || 'list'}`;
+          const cachedData = await this.getCachedData<T>(cacheKey);
+          
+          if (cachedData) {
+            return cachedData;
+          }
+        }
+        
+        // For write operations, fall back to offline queue
+        if (operation !== 'query') {
+          return this.addToQueue<T>({
+            entityType,
+            operation,
+            data,
+            entityId,
+            priority: operationConfig.priority
+          });
+        }
+        
+        throw error;
+      }
+    } else {
+      // We're offline or no API call function was provided
+      
+      // For write operations, add to offline queue
+      if (operation !== 'query') {
+        return this.addToQueue<T>({
+          entityType,
+          operation,
+          data,
+          entityId,
+          priority: operationConfig.priority
+        });
+      }
+      
+      // For read operations, try to get from cache
+      const cacheKey = `${entityType}:${entityId || 'list'}`;
+      const cachedData = await this.getCachedData<T>(cacheKey);
+      
+      if (cachedData) {
+        return cachedData;
+      }
+      
+      // No cached data available
+      throw new Error(`No cached data available for ${entityType}${entityId ? `:${entityId}` : ''}`);
     }
   }
 
   /**
-   * Handle create operation in offline mode
+   * Add an operation to the offline queue
    */
-  private async handleCreateOffline<T>(
-    entityType: EntityType,
-    data: T,
-    config: OfflineOperationConfig
-  ): Promise<T> {
-    // Generate temporary ID for new entity
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  private async addToQueue<T>(params: {
+    entityType: EntityType;
+    operation: OperationType;
+    data: T;
+    entityId?: string;
+    priority: 'high' | 'medium' | 'low';
+  }): Promise<T> {
+    const { entityType, operation, data, entityId, priority } = params;
     
-    // Add to sync queue
-    await this.syncService.addPendingAction({
-      type: 'create',
+    // Generate a unique ID
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create queue item
+    const queueItem: OfflineQueueItem<T> = {
+      id,
       entityType,
+      operation,
       data,
-      priority: config.priority,
-    });
+      entityId,
+      timestamp: Date.now(),
+      retryCount: 0,
+      priority
+    };
     
-    // Cache the data for local retrieval
-    const cacheKey = `${entityType}:${tempId}`;
-    await this.offlineStorage.cacheData(cacheKey, { ...data, id: tempId }, config.ttl || 0);
+    // Add to queue
+    this.offlineQueue.push(queueItem);
     
-    return { ...data, id: tempId } as T;
-  }
-
-  /**
-   * Handle update operation in offline mode
-   */
-  private async handleUpdateOffline<T>(
-    entityType: EntityType,
-    id: string,
-    data: T,
-    config: OfflineOperationConfig
-  ): Promise<T> {
-    // Add to sync queue
-    await this.syncService.addPendingAction({
-      type: 'update',
-      entityType,
-      entityId: id,
-      data,
-      priority: config.priority,
-    });
+    // Sort by priority then timestamp
+    this.sortQueue();
     
-    // Update local cache
-    const cacheKey = `${entityType}:${id}`;
-    await this.offlineStorage.cacheData(cacheKey, data, config.ttl || 0);
+    // Save queue
+    await this.saveOfflineQueue();
     
+    // For create operations, cache the data immediately
+    if (operation === 'create') {
+      const cacheKey = `${entityType}:${id}`;
+      await this.cacheData(cacheKey, data, DEFAULT_CONFIGS[entityType].ttl || 0);
+    }
+    
+    // For update operations, update cache
+    if (operation === 'update' && entityId) {
+      const cacheKey = `${entityType}:${entityId}`;
+      await this.cacheData(cacheKey, data, DEFAULT_CONFIGS[entityType].ttl || 0);
+    }
+    
+    // Return the data that would have been returned by the API
     return data;
   }
 
   /**
-   * Handle delete operation in offline mode
+   * Process the offline queue
    */
-  private async handleDeleteOffline(
-    entityType: EntityType,
-    id: string,
-    config: OfflineOperationConfig
-  ): Promise<boolean> {
-    // Add to sync queue
-    await this.syncService.addPendingAction({
-      type: 'delete',
-      entityType,
-      entityId: id,
-      data: null,
-      priority: config.priority,
-    });
-    
-    // Remove from local cache
-    const cacheKey = `${entityType}:${id}`;
-    await this.offlineStorage.getCachedData(cacheKey).then(async (cachedData) => {
-      if (cachedData) {
-        // Clear the cache entry
-        await this.offlineStorage.cacheData(cacheKey, null, 0);
-      }
-    });
-    
-    return true;
-  }
-
-  /**
-   * Handle query operation in offline mode
-   */
-  private async handleQueryOffline<T>(
-    entityType: EntityType,
-    id?: string,
-    config?: OfflineOperationConfig
-  ): Promise<T> {
-    // If ID is provided, fetch specific entity
-    if (id) {
-      const cacheKey = `${entityType}:${id}`;
-      const cachedData = await this.offlineStorage.getCachedData<T>(cacheKey);
-      
-      if (!cachedData) {
-        throw new Error(`No cached data found for ${entityType} with ID ${id}`);
-      }
-      
-      return cachedData;
+  public async processOfflineQueue(): Promise<void> {
+    // Skip if we're already processing or if we're offline
+    if (this.processingQueue || !this.isOnline) {
+      return;
     }
     
-    // Otherwise, would typically query all entities of this type
-    // This would require a more sophisticated caching strategy
-    throw new Error('Querying all entities offline is not supported in the basic implementation');
+    this.processingQueue = true;
+    
+    try {
+      // Process queue items in order
+      const queueToProcess = [...this.offlineQueue];
+      
+      for (const item of queueToProcess) {
+        try {
+          // Execute the operation
+          await this.executeOperation(item);
+          
+          // Remove from queue if successful
+          this.removeFromQueue(item.id);
+        } catch (error) {
+          console.error(`Error processing queue item ${item.id}:`, error);
+          
+          // Update retry count
+          this.updateQueueItem(item.id, {
+            retryCount: item.retryCount + 1,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          
+          // If max retries reached, move to the end of the queue
+          if (item.retryCount >= this.maxRetries) {
+            const updatedItem = this.offlineQueue.find(i => i.id === item.id);
+            if (updatedItem) {
+              // Move to end of queue with lower priority
+              this.removeFromQueue(item.id);
+              updatedItem.priority = 'low';
+              updatedItem.timestamp = Date.now(); // Update timestamp
+              this.offlineQueue.push(updatedItem);
+            }
+          }
+        }
+      }
+      
+      // Save the updated queue
+      await this.saveOfflineQueue();
+      
+      // Update last sync timestamp
+      await AsyncStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+      
+    } catch (error) {
+      console.error('Error processing offline queue:', error);
+    } finally {
+      this.processingQueue = false;
+    }
   }
 
   /**
-   * Force a sync with the server
+   * Execute a single operation from the queue
+   */
+  private async executeOperation(item: OfflineQueueItem): Promise<void> {
+    const { entityType, operation, data, entityId } = item;
+    
+    switch (operation) {
+      case 'create':
+        await this.executeApiCall(`/${entityType}`, 'POST', data);
+        break;
+        
+      case 'update':
+        if (!entityId) {
+          throw new Error(`Entity ID is required for update operations`);
+        }
+        await this.executeApiCall(`/${entityType}/${entityId}`, 'PUT', data);
+        break;
+        
+      case 'delete':
+        if (!entityId) {
+          throw new Error(`Entity ID is required for delete operations`);
+        }
+        await this.executeApiCall(`/${entityType}/${entityId}`, 'DELETE');
+        
+        // Remove from cache
+        const cacheKey = `${entityType}:${entityId}`;
+        await this.removeCachedData(cacheKey);
+        break;
+        
+      default:
+        throw new Error(`Unsupported operation: ${operation}`);
+    }
+  }
+
+  /**
+   * Execute an API call
+   */
+  private async executeApiCall(endpoint: string, method: string, data?: any): Promise<any> {
+    try {
+      let response;
+      
+      switch (method) {
+        case 'GET':
+          response = await apiClient.get(endpoint);
+          break;
+        case 'POST':
+          response = await apiClient.post(endpoint, data);
+          break;
+        case 'PUT':
+          response = await apiClient.put(endpoint, data);
+          break;
+        case 'DELETE':
+          response = await apiClient.delete(endpoint);
+          break;
+        default:
+          throw new Error(`Unsupported method: ${method}`);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`API call failed (${method} ${endpoint}):`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove an item from the queue
+   */
+  private removeFromQueue(id: string): void {
+    this.offlineQueue = this.offlineQueue.filter(item => item.id !== id);
+  }
+
+  /**
+   * Update a queue item
+   */
+  private updateQueueItem(id: string, updates: Partial<OfflineQueueItem>): void {
+    const index = this.offlineQueue.findIndex(item => item.id === id);
+    if (index !== -1) {
+      this.offlineQueue[index] = {
+        ...this.offlineQueue[index],
+        ...updates
+      };
+    }
+  }
+
+  /**
+   * Sort the queue by priority and timestamp
+   */
+  private sortQueue(): void {
+    // Define priority order
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    
+    this.offlineQueue.sort((a, b) => {
+      // Sort by priority first
+      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      
+      // Then sort by timestamp (oldest first)
+      return a.timestamp - b.timestamp;
+    });
+  }
+
+  /**
+   * Load the offline queue from storage
+   */
+  private async loadOfflineQueue(): Promise<void> {
+    try {
+      const queueData = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+      
+      if (queueData) {
+        this.offlineQueue = JSON.parse(queueData);
+      } else {
+        this.offlineQueue = [];
+      }
+    } catch (error) {
+      console.error('Error loading offline queue:', error);
+      this.offlineQueue = [];
+    }
+  }
+
+  /**
+   * Save the offline queue to storage
+   */
+  private async saveOfflineQueue(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(this.offlineQueue));
+    } catch (error) {
+      console.error('Error saving offline queue:', error);
+    }
+  }
+
+  /**
+   * Cache data for offline use
+   */
+  private async cacheData<T>(key: string, data: T, ttl: number): Promise<void> {
+    try {
+      const cacheItem = {
+        data,
+        timestamp: Date.now(),
+        expiry: Date.now() + ttl
+      };
+      
+      await AsyncStorage.setItem(
+        `${OFFLINE_CACHE_PREFIX}${key}`,
+        JSON.stringify(cacheItem)
+      );
+    } catch (error) {
+      console.error(`Error caching data for ${key}:`, error);
+    }
+  }
+
+  /**
+   * Get cached data
+   */
+  private async getCachedData<T>(key: string): Promise<T | null> {
+    try {
+      const cacheData = await AsyncStorage.getItem(`${OFFLINE_CACHE_PREFIX}${key}`);
+      
+      if (!cacheData) {
+        return null;
+      }
+      
+      const { data, expiry } = JSON.parse(cacheData);
+      
+      // Check if expired
+      if (Date.now() > expiry) {
+        // Remove expired data
+        await AsyncStorage.removeItem(`${OFFLINE_CACHE_PREFIX}${key}`);
+        return null;
+      }
+      
+      return data as T;
+    } catch (error) {
+      console.error(`Error getting cached data for ${key}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Remove cached data
+   */
+  private async removeCachedData(key: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(`${OFFLINE_CACHE_PREFIX}${key}`);
+    } catch (error) {
+      console.error(`Error removing cached data for ${key}:`, error);
+    }
+  }
+
+  /**
+   * Clear all cached data
+   */
+  public async clearCache(): Promise<void> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(key => key.startsWith(OFFLINE_CACHE_PREFIX));
+      
+      if (cacheKeys.length > 0) {
+        await AsyncStorage.multiRemove(cacheKeys);
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  }
+
+  /**
+   * Get queue statistics
+   */
+  public getQueueStats(): {
+    totalItems: number;
+    pending: number;
+    byEntityType: Record<string, number>;
+    byOperation: Record<string, number>;
+    byPriority: Record<string, number>;
+  } {
+    const stats = {
+      totalItems: this.offlineQueue.length,
+      pending: this.offlineQueue.length,
+      byEntityType: {} as Record<string, number>,
+      byOperation: {} as Record<string, number>,
+      byPriority: {} as Record<string, number>,
+    };
+    
+    // Calculate stats
+    for (const item of this.offlineQueue) {
+      // Count by entity type
+      stats.byEntityType[item.entityType] = (stats.byEntityType[item.entityType] || 0) + 1;
+      
+      // Count by operation
+      stats.byOperation[item.operation] = (stats.byOperation[item.operation] || 0) + 1;
+      
+      // Count by priority
+      stats.byPriority[item.priority] = (stats.byPriority[item.priority] || 0) + 1;
+    }
+    
+    return stats;
+  }
+
+  /**
+   * Get pending queue items
+   */
+  public getPendingItems(): OfflineQueueItem[] {
+    return [...this.offlineQueue];
+  }
+
+  /**
+   * Force sync data
    */
   public async forceSyncData(): Promise<boolean> {
-    if (!this.networkStatus) {
+    if (!this.isOnline) {
       return false;
     }
     
     this.updateStatus('syncing');
-    const result = await this.syncService.triggerSync('manual');
-    this.updateStatus(this.networkStatus ? 'online' : 'offline');
-    
-    return result;
+    try {
+      await this.processOfflineQueue();
+      this.updateStatus('online');
+      return true;
+    } catch (error) {
+      console.error('Error forcing sync:', error);
+      this.updateStatus('online');
+      return false;
+    }
   }
 
   /**
-   * Get sync statistics
+   * Register a merge function for a specific entity type
    */
-  public async getSyncStats(): Promise<SyncStats> {
-    const pendingActions = await this.syncService.getPendingActions();
+  public registerMergeFunction<T>(
+    entityType: EntityType | string,
+    mergeFn: (local: T, remote: T) => T
+  ): void {
+    this.mergeFunctions.set(entityType, mergeFn);
     
-    // Count by entity type
-    const byEntityType = pendingActions.reduce((acc, action) => {
-      const entityType = action.entityType as EntityType;
-      acc[entityType] = (acc[entityType] || 0) + 1;
-      return acc;
-    }, {} as Record<EntityType, number>);
-    
-    // Ensure all entity types are represented
-    Object.keys(DEFAULT_CONFIGS).forEach(key => {
-      const entityKey = key as EntityType;
-      if (!byEntityType[entityKey]) {
-        byEntityType[entityKey] = 0;
-      }
-    });
-    
-    const syncStats = await this.syncService.getSyncStats();
-    
-    return {
-      pendingActions: pendingActions.length,
-      lastSync: syncStats.lastSyncTimestamp,
-      syncSuccess: syncStats.failedSyncs === 0,
-      failedActions: syncStats.failedSyncs,
-      byEntityType,
-    };
+    // Also register with ConflictResolution service
+    ConflictResolution.registerMergeFunction(entityType, mergeFn);
   }
 
   /**
-   * Clear all cached data and pending operations
+   * Resolve a conflict between local and remote data
    */
-  public async clearOfflineData(): Promise<void> {
-    await this.offlineStorage.clearCache();
-    await this.syncService.clearPendingActions();
+  public async resolveConflict<T>(
+    entityType: EntityType | string,
+    localData: T,
+    remoteData: T,
+    conflictStrategy?: ResolutionStrategy
+  ): Promise<T> {
+    // Get strategy
+    const strategy = conflictStrategy || 
+      (DEFAULT_CONFIGS[entityType as EntityType]?.conflictStrategy || ResolutionStrategy.REMOTE_WINS);
+    
+    return ConflictResolution.resolveConflict(
+      entityType,
+      localData,
+      remoteData,
+      strategy
+    );
   }
 
   /**
-   * Clean up resources when no longer needed
+   * Cleanup and release resources
    */
   public cleanup(): void {
+    // Clean up network listener
     if (this.netInfoSubscription) {
       this.netInfoSubscription();
       this.netInfoSubscription = null;
     }
     
+    // Clean up app state listener
     if (this.appStateSubscription) {
       this.appStateSubscription.remove();
       this.appStateSubscription = null;
     }
     
-    this.syncService.cleanup();
+    // Clear sync interval
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
   }
-} 
+}
+
+// Export singleton instance
+export const offlineManager = OfflineManager.getInstance();
+export default offlineManager; 

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoCart Web Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .header {
+      background: #2e7d32;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .status {
+      padding: 1rem;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+    .success {
+      color: #2e7d32;
+      font-weight: bold;
+    }
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    pre {
+      background: #f1f1f1;
+      padding: 1rem;
+      border-radius: 4px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>EcoCart Web Compatibility Test</h1>
+  </div>
+  
+  <div class="container">
+    <div class="status" id="filesystem-status">
+      <h2>FileSystem Module Test</h2>
+      <div id="filesystem-result">Testing...</div>
+    </div>
+
+    <div class="status" id="theme-status">
+      <h2>Theme System Test</h2>
+      <div id="theme-result">Testing...</div>
+    </div>
+
+    <div class="status" id="log-output">
+      <h2>Console Output</h2>
+      <pre id="console-log"></pre>
+    </div>
+  </div>
+
+  <script>
+    // Capture console output
+    const originalConsoleLog = console.log;
+    const originalConsoleWarn = console.warn;
+    const originalConsoleError = console.error;
+    
+    let logOutput = '';
+    
+    console.log = function() {
+      logOutput += '> ' + Array.from(arguments).join(' ') + '\n';
+      document.getElementById('console-log').textContent = logOutput;
+      originalConsoleLog.apply(console, arguments);
+    };
+    
+    console.warn = function() {
+      logOutput += '⚠️ ' + Array.from(arguments).join(' ') + '\n';
+      document.getElementById('console-log').textContent = logOutput;
+      originalConsoleWarn.apply(console, arguments);
+    };
+    
+    console.error = function() {
+      logOutput += '🛑 ' + Array.from(arguments).join(' ') + '\n';
+      document.getElementById('console-log').textContent = logOutput;
+      originalConsoleError.apply(console, arguments);
+    };
+
+    // Test FileSystem module
+    async function testFileSystem() {
+      try {
+        // Attempt to dynamically import the module
+        const FileSystemModule = await import('./src/utils/cross-platform/fileSystem.js');
+        const FileSystem = FileSystemModule.default;
+        
+        console.log('FileSystem module imported successfully:', FileSystem);
+        
+        // Test writing and reading
+        await FileSystem.writeAsStringAsync('test-file.txt', 'Hello from web test!');
+        const content = await FileSystem.readAsStringAsync('test-file.txt');
+        
+        if (content === 'Hello from web test!') {
+          document.getElementById('filesystem-result').innerHTML = '<span class="success">✓ FileSystem module working correctly!</span>';
+        } else {
+          document.getElementById('filesystem-result').innerHTML = '<span class="warning">⚠️ FileSystem read/write inconsistent.</span>';
+        }
+      } catch (error) {
+        console.error('FileSystem test error:', error);
+        document.getElementById('filesystem-result').innerHTML = `<span class="error">✗ FileSystem module error: ${error.message}</span>`;
+      }
+    }
+
+    // Test theme system
+    async function testThemeSystem() {
+      try {
+        // Attempt to dynamically import the theme module
+        const themeModule = await import('./src/theme/index.js');
+        const { useTheme } = themeModule;
+        
+        console.log('Theme module imported successfully');
+        
+        if (typeof useTheme === 'function') {
+          const themeResult = useTheme();
+          console.log('Theme result:', themeResult);
+          
+          if (themeResult && themeResult.theme) {
+            document.getElementById('theme-result').innerHTML = `
+              <span class="success">✓ Theme system working correctly!</span>
+              <pre>${JSON.stringify(themeResult.theme, null, 2)}</pre>
+            `;
+          } else {
+            document.getElementById('theme-result').innerHTML = '<span class="warning">⚠️ Theme object structure unexpected.</span>';
+          }
+        } else {
+          document.getElementById('theme-result').innerHTML = '<span class="error">✗ useTheme is not a function.</span>';
+        }
+      } catch (error) {
+        console.error('Theme system test error:', error);
+        document.getElementById('theme-result').innerHTML = `<span class="error">✗ Theme system error: ${error.message}</span>`;
+      }
+    }
+
+    // Run tests when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('Running compatibility tests...');
+      testFileSystem();
+      testThemeSystem();
+    });
+  </script>
+</body>
+</html> 

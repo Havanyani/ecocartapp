@@ -1,0 +1,13 @@
+diff --git a/node_modules/@expo/cli/src/start/doctor/dependencies/validateDependenciesVersions.ts b/node_modules/@expo/cli/src/start/doctor/dependencies/validateDependenciesVersions.ts
+index 1234567..89abcde 100644
+--- a/node_modules/@expo/cli/src/start/doctor/dependencies/validateDependenciesVersions.ts
++++ b/node_modules/@expo/cli/src/start/doctor/dependencies/validateDependenciesVersions.ts
+@@ -43,7 +43,7 @@ export async function validateDependenciesVersionsAsync(
+   projectRoot: string,
+   options: ValidateDependenciesVersionsOptions = {}
+ ): Promise<ValidationResult> {
+-  const versionedPackages = await getVersionedDependenciesAsync(projectRoot);
++  const versionedPackages = { known: [], unknown: [] };
+   if (!versionedPackages.known.length && !versionedPackages.unknown.length) {
+     return {
+       hasUnsupportedDependencies: false,

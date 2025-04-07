@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './ThemedText';
@@ -14,7 +14,7 @@ export function StepIndicator({
   currentStep, 
   onStepPress 
 }: StepIndicatorProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <View style={styles.container}>

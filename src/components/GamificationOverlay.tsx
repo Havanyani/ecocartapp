@@ -2,6 +2,7 @@ import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
+import { useTheme } from '@/theme';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
@@ -19,6 +20,7 @@ interface GamificationOverlayProps {
 }
 
 export function GamificationOverlay({ achievement, onClose }: GamificationOverlayProps): JSX.Element | null {
+  const theme = useTheme()()();
   const [animation] = useState(new Animated.Value(0));
 
   useEffect(() => {
@@ -55,6 +57,10 @@ export function GamificationOverlay({ achievement, onClose }: GamificationOverla
               }),
             },
           ],
+          backgroundColor: `${theme.colors.success}F2`, // rgba(46, 125, 50, 0.95) equivalent
+          margin: 16,
+          padding: 16,
+          borderRadius: 8,
         },
       ]}
       accessibilityRole="alert"
@@ -64,20 +70,30 @@ export function GamificationOverlay({ achievement, onClose }: GamificationOverla
         <IconSymbol 
           name="trophy" 
           size={48} 
-          color="#FFD700"
+          color={theme.colors.warning}
         />
         <View style={styles.textContainer}>
-          <ThemedText style={styles.title}>Achievement Unlocked!</ThemedText>
-          <ThemedText style={styles.achievementText}>{achievement.title}</ThemedText>
-          <ThemedText style={styles.description}>{achievement.description}</ThemedText>
-          <ThemedText style={styles.points}>+{achievement.points} points</ThemedText>
+          <ThemedText style={[styles.title, { color: theme.colors.white }]}>
+            Achievement Unlocked!
+          </ThemedText>
+          <ThemedText style={[styles.achievementText, { color: theme.colors.white }]}>
+            {achievement.title}
+          </ThemedText>
+          <ThemedText style={[styles.description, { color: theme.colors.white }]}>
+            {achievement.description}
+          </ThemedText>
+          <ThemedText style={[styles.points, { color: theme.colors.warning }]}>
+            +{achievement.points} points
+          </ThemedText>
         </View>
         <HapticTab 
-          style={styles.button} 
+          style={[styles.button, { backgroundColor: theme.colors.warning }]} 
           onPress={onClose}
           accessibilityLabel="Close achievement notification"
         >
-          <ThemedText style={styles.buttonText}>Awesome!</ThemedText>
+          <ThemedText style={[styles.buttonText, { color: theme.colors.white }]}>
+            Awesome!
+          </ThemedText>
         </HapticTab>
       </ThemedView>
     </Animated.View>
@@ -90,10 +106,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(46, 125, 50, 0.95)',
-    padding: 16,
-    margin: 16,
-    borderRadius: 8,
     elevation: 5,
   },
   content: {
@@ -105,22 +117,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   achievementText: {
-    color: '#fff',
     fontSize: 16,
     marginBottom: 4,
   },
   description: {
-    color: '#fff',
     fontSize: 14,
   },
   points: {
-    color: '#FFD700',
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 4,
@@ -129,11 +137,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#FFD700',
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },

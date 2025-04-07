@@ -1,142 +1,285 @@
 /**
  * MaterialSelector.tsx
  * 
- * A component that allows users to select materials for collection
- * from a predefined list of recyclable material types.
+ * Component for selecting recyclable materials for collection.
  */
 
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
-import React from 'react';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { useTheme } from '@/theme';
+import { MaterialCategory } from '@/types/Material';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-export interface MaterialSelectorProps {
-  selectedMaterials: string[];
-  onSelectionChange: (materials: string[]) => void;
+interface MaterialSelectorProps {
+  selectedMaterials: MaterialCategory[];
+  onSelectMaterials: (materials: MaterialCategory[]) => void;
 }
 
-interface MaterialType {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-}
-
-// Predefined list of material types
-const MATERIAL_TYPES: MaterialType[] = [
+// Mock data for materials - in a real app, this would come from an API
+const AVAILABLE_MATERIALS: MaterialCategory[] = [
   {
-    id: 'paper',
-    name: 'Paper',
-    icon: 'file-text',
-    description: 'Newspapers, magazines, office paper, cardboard',
+    id: '1',
+    name: 'Plastic Bottles',
+    icon: 'bottle-water',
+    category: 'recyclable',
+    creditPerKg: 2.5,
+    recyclingGuidelines: 'Rinse and crush bottles before recycling.',
   },
   {
-    id: 'plastic',
-    name: 'Plastic',
-    icon: 'box',
-    description: 'Bottles, containers, packaging',
+    id: '2',
+    name: 'Cardboard',
+    icon: 'package-variant',
+    category: 'recyclable',
+    creditPerKg: 1.0,
+    recyclingGuidelines: 'Flatten cardboard boxes before recycling.',
   },
   {
-    id: 'glass',
+    id: '3',
     name: 'Glass',
-    icon: 'wine-bottle',
-    description: 'Bottles, jars, containers',
+    icon: 'glass-fragile',
+    category: 'recyclable',
+    creditPerKg: 1.5,
+    recyclingGuidelines: 'Rinse glass containers before recycling.',
   },
   {
-    id: 'metal',
-    name: 'Metal',
-    icon: 'package',
-    description: 'Cans, aluminum, steel containers',
+    id: '4',
+    name: 'Aluminum Cans',
+    icon: 'can',
+    category: 'recyclable',
+    creditPerKg: 3.0,
+    recyclingGuidelines: 'Rinse and crush cans before recycling.',
   },
   {
-    id: 'electronics',
+    id: '5',
+    name: 'Paper',
+    icon: 'file-document',
+    category: 'recyclable',
+    creditPerKg: 0.8,
+    recyclingGuidelines: 'Keep paper dry and clean.',
+  },
+  {
+    id: '6',
     name: 'Electronics',
-    icon: 'cpu',
-    description: 'Small electronics, batteries, cables',
+    icon: 'laptop',
+    category: 'hazardous',
+    creditPerKg: 5.0,
+    recyclingGuidelines: 'Remove batteries before recycling electronics.',
   },
   {
-    id: 'textiles',
-    name: 'Textiles',
-    icon: 'scissors',
-    description: 'Clothing, fabrics, shoes',
+    id: '7',
+    name: 'Batteries',
+    icon: 'battery',
+    category: 'hazardous',
+    creditPerKg: 4.0,
+    recyclingGuidelines: 'Do not mix different types of batteries.',
   },
   {
-    id: 'organic',
-    name: 'Organic',
-    icon: 'coffee',
-    description: 'Food waste, garden waste, compostables',
-  },
-  {
-    id: 'other',
-    name: 'Other',
-    icon: 'more-horizontal',
-    description: 'Specify in notes',
+    id: '8',
+    name: 'Plastic Bags',
+    icon: 'shopping',
+    category: 'recyclable',
+    creditPerKg: 1.2,
+    recyclingGuidelines: 'Clean and dry plastic bags before recycling.',
   },
 ];
 
-export function MaterialSelector({ selectedMaterials, onSelectionChange }: MaterialSelectorProps) {
-  const { theme } = useTheme();
-  
-  // Toggle a material selection
-  const toggleMaterial = (materialId: string) => {
-    if (selectedMaterials.includes(materialId)) {
-      onSelectionChange(selectedMaterials.filter(id => id !== materialId));
+export function MaterialSelector({
+  selectedMaterials,
+  onSelectMaterials,
+}: MaterialSelectorProps) {
+  const { colors } = useTheme();
+  const [materials, setMaterials] = useState<MaterialCategory[]>(AVAILABLE_MATERIALS);
+  const [filter, setFilter] = useState<'all' | 'recyclable' | 'non-recyclable' | 'hazardous'>('all');
+
+  // Filter materials based on selected filter
+  const filteredMaterials = materials.filter(material => {
+    if (filter === 'all') return true;
+    return material.category === filter;
+  });
+
+  // Handle material selection
+  const handleMaterialSelect = (material: MaterialCategory) => {
+    const isSelected = selectedMaterials.some(m => m.id === material.id);
+    
+    if (isSelected) {
+      // Remove material if already selected
+      onSelectMaterials(selectedMaterials.filter(m => m.id !== material.id));
     } else {
-      onSelectionChange([...selectedMaterials, materialId]);
+      // Add material if not selected
+      onSelectMaterials([...selectedMaterials, material]);
     }
   };
 
+  // Check if a material is selected
+  const isMaterialSelected = (materialId: string) => {
+    return selectedMaterials.some(m => m.id === materialId);
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.materialsGrid}>
-        {MATERIAL_TYPES.map((material) => {
-          const isSelected = selectedMaterials.includes(material.id);
-          
-          return (
-            <TouchableOpacity
-              key={material.id}
-              style={[
-                styles.materialItem,
-                isSelected && { ...styles.selectedItem, borderColor: theme.colors.primary },
-              ]}
-              onPress={() => toggleMaterial(material.id)}
-            >
-              <View style={[
-                styles.iconContainer,
-                isSelected && { backgroundColor: theme.colors.primary },
-              ]}>
-                <IconSymbol
-                  name={material.icon}
-                  size={24}
-                  color={isSelected ? theme.colors.white : theme.colors.primary}
-                />
-              </View>
-              
-              <ThemedText style={styles.materialName}>
-                {material.name}
-              </ThemedText>
-              
-              <ThemedText style={styles.materialDescription} numberOfLines={2}>
-                {material.description}
-              </ThemedText>
-              
-              {isSelected && (
-                <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
-                  <IconSymbol name="check" size={14} color={theme.colors.white} />
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+    <ThemedView style={styles.container}>
+      {/* Filter buttons */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}
+        contentContainerStyle={styles.filterContent}
+      >
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'all' && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => setFilter('all')}
+        >
+          <ThemedText
+            style={[
+              styles.filterText,
+              filter === 'all' && { color: 'white' },
+            ]}
+          >
+            All
+          </ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'recyclable' && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => setFilter('recyclable')}
+        >
+          <ThemedText
+            style={[
+              styles.filterText,
+              filter === 'recyclable' && { color: 'white' },
+            ]}
+          >
+            Recyclable
+          </ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'non-recyclable' && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => setFilter('non-recyclable')}
+        >
+          <ThemedText
+            style={[
+              styles.filterText,
+              filter === 'non-recyclable' && { color: 'white' },
+            ]}
+          >
+            Non-Recyclable
+          </ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'hazardous' && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => setFilter('hazardous')}
+        >
+          <ThemedText
+            style={[
+              styles.filterText,
+              filter === 'hazardous' && { color: 'white' },
+            ]}
+          >
+            Hazardous
+          </ThemedText>
+        </TouchableOpacity>
       </ScrollView>
-    </View>
+      
+      {/* Materials grid */}
+      <View style={styles.materialsGrid}>
+        {filteredMaterials.map(material => (
+          <TouchableOpacity
+            key={material.id}
+            style={[
+              styles.materialItem,
+              isMaterialSelected(material.id) && {
+                borderColor: colors.primary,
+                backgroundColor: `${colors.primary}20`,
+              },
+            ]}
+            onPress={() => handleMaterialSelect(material)}
+          >
+            <IconSymbol
+              name={material.icon}
+              size={24}
+              color={isMaterialSelected(material.id) ? colors.primary : colors.text}
+            />
+            <ThemedText
+              style={[
+                styles.materialName,
+                isMaterialSelected(material.id) && { color: colors.primary },
+              ]}
+            >
+              {material.name}
+            </ThemedText>
+            <ThemedText style={styles.creditRate}>
+              {material.creditPerKg} credits/kg
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      {selectedMaterials.length > 0 && (
+        <ThemedView style={styles.selectedContainer}>
+          <ThemedText style={styles.selectedTitle}>
+            Selected Materials ({selectedMaterials.length})
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.selectedScroll}
+          >
+            {selectedMaterials.map(material => (
+              <View key={material.id} style={styles.selectedItem}>
+                <IconSymbol name={material.icon} size={16} color={colors.primary} />
+                <ThemedText style={styles.selectedName}>
+                  {material.name}
+                </ThemedText>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleMaterialSelect(material)}
+                >
+                  <IconSymbol name="close" size={12} color={colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </ThemedView>
+      )}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    width: '100%',
+  },
+  filterContainer: {
+    marginBottom: 16,
+  },
+  filterContent: {
+    paddingRight: 16,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   materialsGrid: {
     flexDirection: 'row',
@@ -145,43 +288,59 @@ const styles = StyleSheet.create({
   },
   materialItem: {
     width: '48%',
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    backgroundColor: '#f8f8f8',
-  },
-  selectedItem: {
-    backgroundColor: '#f0f8ff',
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
+    marginBottom: 16,
     alignItems: 'center',
-    marginBottom: 8,
   },
   materialName: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  creditRate: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  selectedContainer: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  selectedTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  materialDescription: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-    height: 32,
+  selectedScroll: {
+    flexDirection: 'row',
   },
-  checkmark: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  selectedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectedName: {
+    marginLeft: 6,
+    marginRight: 4,
+    fontSize: 14,
+  },
+  removeButton: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },

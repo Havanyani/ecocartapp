@@ -1,39 +1,53 @@
-import { useTheme } from '@/hooks/useTheme';
 import { Stack } from 'expo-router/stack';
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import { Animated } from 'react-native';
+import { useTransitionOptimization } from '../../src/hooks/useTransitionOptimization';
 
 export default function AuthLayout() {
-  const { theme } = useTheme();
+  const { transitionAnim } = useTransitionOptimization();
 
   return (
-    <>
-      <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background },
-        }}
-      >
+    <Animated.View
+      style={{
+        flex: 1,
+        opacity: transitionAnim,
+        transform: [{
+          translateY: transitionAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [20, 0]
+          })
+        }]
+      }}
+    >
+      <Stack>
         <Stack.Screen
           name="login"
           options={{
-            title: 'Sign In',
+            title: 'Login',
+            headerShown: false,
           }}
         />
         <Stack.Screen
-          name="register"
+          name="signup"
           options={{
             title: 'Sign Up',
+            headerShown: false,
           }}
         />
         <Stack.Screen
           name="forgot-password"
           options={{
+            title: 'Forgot Password',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="reset-password"
+          options={{
             title: 'Reset Password',
+            headerShown: false,
           }}
         />
       </Stack>
-    </>
+    </Animated.View>
   );
 } 

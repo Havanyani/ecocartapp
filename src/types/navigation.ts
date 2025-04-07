@@ -51,24 +51,34 @@ export interface ScreenProps<T extends keyof RootStackParamList> {
 export type RootStackParamList = {
   '(auth)': undefined;
   '(tabs)': undefined;
-  'onboarding': undefined;
-  'settings': undefined;
+  'modal': undefined;
 };
 
 export type AuthStackParamList = {
-  'index': undefined;
-  'signin': undefined;
+  'login': undefined;
   'signup': undefined;
   'forgot-password': undefined;
+  'reset-password': {
+    token: string;
+  };
 };
 
-export type TabParamList = {
+export type TabsParamList = {
   'index': undefined;
-  'collections': undefined;
   'materials': undefined;
+  'collections': undefined;
   'community': undefined;
-  'rewards': undefined;
   'profile': undefined;
+};
+
+export type ModalStackParamList = {
+  'ar-scan': undefined;
+  'material-details': {
+    id: string;
+  };
+  'collection-details': {
+    id: string;
+  };
 };
 
 export type MaterialsStackParamList = {

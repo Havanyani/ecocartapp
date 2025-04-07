@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { notificationHistoryService } from '@/services/NotificationHistoryService';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { NotificationHistory } from '../NotificationHistory';

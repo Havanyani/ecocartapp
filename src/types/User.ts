@@ -1,3 +1,81 @@
+/**
+ * user.ts
+ * 
+ * Type definitions for user profiles in the EcoCart application.
+ * Extends the base AuthUser with EcoCart-specific information.
+ */
+
+import { AuthUser } from './auth';
+import { CollectionItem } from './collections';
+import { CreditsSummary } from './credits';
+
+/**
+ * User profile that extends the base AuthUser with EcoCart-specific information
+ */
+export interface UserProfile extends AuthUser {
+  // Contact information
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  
+  // EcoCart specific
+  credits: CreditsSummary;
+  collectionHistory: CollectionItem[];
+  preferredCollectionDay?: string;
+  preferredCollectionTime?: string;
+  notificationPreferences: {
+    collectionReminders: boolean;
+    creditUpdates: boolean;
+    promotions: boolean;
+    environmentalTips: boolean;
+  };
+  
+  // Account settings
+  isDeliveryPersonnel: boolean;
+  deliveryPersonnelId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * User profile update data
+ */
+export interface UserProfileUpdateData {
+  name?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  preferredCollectionDay?: string;
+  preferredCollectionTime?: string;
+  notificationPreferences?: {
+    collectionReminders?: boolean;
+    creditUpdates?: boolean;
+    promotions?: boolean;
+    environmentalTips?: boolean;
+  };
+}
+
+/**
+ * User profile creation data
+ */
+export interface UserProfileCreationData {
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  password: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -22,22 +100,6 @@ export interface User {
   }>;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface UserProfile extends User {
-  stats: {
-    totalOrders: number;
-    totalSpent: number;
-    plasticCollected: number;
-    creditsEarned: number;
-    creditsUsed: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    type: 'order' | 'collection' | 'credit';
-    description: string;
-    timestamp: string;
-  }>;
 }
 
 export interface UserSettings {

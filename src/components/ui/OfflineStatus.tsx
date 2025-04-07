@@ -2,7 +2,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useOfflineState } from '@/hooks/useOfflineState';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -11,7 +11,7 @@ interface OfflineStatusProps {
 }
 
 export function OfflineStatus({ onRetry }: OfflineStatusProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { isConnected, pendingActions, failedActions } = useOfflineState();
 
   if (isConnected && pendingActions === 0 && failedActions === 0) {
@@ -22,14 +22,14 @@ export function OfflineStatus({ onRetry }: OfflineStatusProps) {
     <ThemedView style={styles.container}>
       {!isConnected ? (
         <View style={styles.offlineContainer}>
-          <IconSymbol name="cloud-offline" size={24} color={theme.colors.error} />
+          <IconSymbol name="cloud-offline" size={24} color={theme.theme.colors.error} />
           <ThemedText style={styles.offlineText}>You're offline</ThemedText>
         </View>
       ) : (
         <>
           {pendingActions > 0 && (
             <View style={styles.pendingContainer}>
-              <IconSymbol name="cloud-upload" size={24} color={theme.colors.warning} />
+              <IconSymbol name="cloud-upload" size={24} color={theme.theme.colors.warning} />
               <ThemedText style={styles.pendingText}>
                 {pendingActions} {pendingActions === 1 ? 'action' : 'actions'} pending sync
               </ThemedText>
@@ -40,7 +40,7 @@ export function OfflineStatus({ onRetry }: OfflineStatusProps) {
               style={styles.failedContainer}
               onPress={onRetry}
             >
-              <IconSymbol name="alert-circle" size={24} color={theme.colors.error} />
+              <IconSymbol name="alert-circle" size={24} color={theme.theme.colors.error} />
               <ThemedText style={styles.failedText}>
                 {failedActions} {failedActions === 1 ? 'action' : 'actions'} failed
               </ThemedText>

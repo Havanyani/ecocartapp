@@ -4,6 +4,7 @@
  * Screen displaying a list of scheduled collections with filtering and sorting options.
  */
 
+import useNetworkStatus from '@/hooks/useNetworkStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
@@ -17,7 +18,6 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import useNetworkStatus from '@/hooks/useNetworkStatus';
 
 // Collection status type
 type CollectionStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -256,7 +256,14 @@ export default function CollectionListScreen({ navigation }: CollectionListScree
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>My Collections</Text>
+          <Text style={styles.headerTitle}>Collections</Text>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => navigation.navigate('CollectionHistory')}
+          >
+            <Ionicons name="time-outline" size={24} color="#34C759" />
+            <Text style={styles.historyButtonText}>History</Text>
+          </TouchableOpacity>
           
           {!isOnline && (
             <View style={styles.offlineIndicator}>
@@ -317,13 +324,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA'
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
   },
-  title: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2C3E50'
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  historyButtonText: {
+    marginLeft: 4,
+    color: '#34C759',
+    fontWeight: '500',
   },
   offlineIndicator: {
     flexDirection: 'row',

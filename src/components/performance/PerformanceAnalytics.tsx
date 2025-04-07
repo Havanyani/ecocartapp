@@ -1,8 +1,8 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { VictoryArea, VictoryAxis, VictoryChart, VictoryLine, VictoryTheme, VictoryTooltip, VictoryVoronoiContainer } from '@/components/ui/VictoryChartAdapter';
+import { useTheme } from '@/theme';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { VictoryArea, VictoryAxis, VictoryChart, VictoryLine, VictoryTheme, VictoryTooltip, VictoryVoronoiContainer } from 'victory-native';
 
 type VisualizationType = 'bar' | 'line' | 'pie';
 
@@ -29,7 +29,7 @@ interface PerformanceReport {
 }
 
 export function PerformanceAnalytics() {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [timeRange, setTimeRange] = useState<'hour' | 'day' | 'week'>('hour');
   const [selectedMetric, setSelectedMetric] = useState<keyof PerformanceMetric>('memory');
   const [report, setReport] = useState<PerformanceReport | null>(null);

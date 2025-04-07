@@ -1,5 +1,5 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { TestResultExporter } from '@/utils/TestResultExporter';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -182,7 +182,7 @@ interface NewTestState {
 }
 
 export const PerformanceProfiler: React.FC = () => {
-  const { theme } = useTheme() as { theme: Theme };
+  const theme = useTheme()()() as { theme: Theme };
   const primaryColor = typeof theme.colors.primary === 'string' 
     ? theme.colors.primary 
     : theme.colors.primary.primary;

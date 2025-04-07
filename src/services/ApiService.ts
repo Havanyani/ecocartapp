@@ -8,11 +8,11 @@
 import { environment } from '@/config/environments';
 import { PerformanceMonitor } from '@/utils/PerformanceMonitoring';
 import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-  InternalAxiosRequestConfig
+    AxiosError,
+    AxiosInstance,
+    AxiosRequestConfig,
+    AxiosResponse,
+    InternalAxiosRequestConfig
 } from 'axios';
 
 // Error types
@@ -493,9 +493,21 @@ export class ApiService {
 // Create a default instance
 export default ApiService.getInstance({
   baseURL: (environment?.apiUrl || 'https://api.ecocart.example.com') + '/v1',
-  timeout: 10000,
+  timeout: 30000,
   retry: {
-    retries: 3,
-    retryDelay: 1000
+    retries: 5,
+    retryDelay: 2000,
+    retryCondition: (error) => {
+      const shouldRetry = 
+        error.code === 'ECONNABORTED' ||
+        !error.response ||
+        (error.response && error.response.status >= 500);
+        
+      if (error.response && error.response.status >= 400 && error.response.status < 500) {
+        return error.response.status === 429;
+      }
+      
+      return shouldRetry;
+    }
   }
 }); 

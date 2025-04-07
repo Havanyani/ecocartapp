@@ -1,5 +1,7 @@
-import { useTheme } from '@/hooks/useTheme';
-import { Achievement, AchievementStatus } from '@/types/gamification';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { useTheme } from '@/theme';
+import { Achievement } from '@/types/gamification';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -11,18 +13,18 @@ interface AchievementCardProps {
 }
 
 export function AchievementCard({ achievement, onPress, compact = false }: AchievementCardProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   // Get color based on achievement status
   const getStatusColor = (): string => {
     switch (achievement.status) {
-      case AchievementStatus.LOCKED:
+      case 'locked':
         return theme.colors.text + '40';
-      case AchievementStatus.IN_PROGRESS:
+      case 'in_progress':
         return theme.colors.warning;
-      case AchievementStatus.COMPLETED:
+      case 'completed':
         return theme.colors.success;
-      case AchievementStatus.CLAIMED:
+      case 'claimed':
         return theme.colors.primary;
       default:
         return theme.colors.text;
@@ -32,13 +34,13 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
   // Get icon for achievement status
   const getStatusIcon = (): string => {
     switch (achievement.status) {
-      case AchievementStatus.LOCKED:
+      case 'locked':
         return 'lock-closed';
-      case AchievementStatus.IN_PROGRESS:
+      case 'in_progress':
         return 'time';
-      case AchievementStatus.COMPLETED:
+      case 'completed':
         return 'checkmark-circle';
-      case AchievementStatus.CLAIMED:
+      case 'claimed':
         return 'trophy';
       default:
         return 'help-circle';
@@ -66,26 +68,24 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
         </View>
         
         <View style={styles.compactContent}>
-          <Text 
+          <ThemedText 
             style={[
               styles.title, 
               { 
-                color: theme.colors.text,
-                opacity: achievement.status === AchievementStatus.LOCKED ? 0.5 : 1
+                opacity: achievement.status === 'locked' ? 0.5 : 1
               }
             ]}
             numberOfLines={1}
           >
             {achievement.title}
-          </Text>
+          </ThemedText>
           
-          {achievement.status === AchievementStatus.IN_PROGRESS && (
+          {achievement.status === 'in_progress' && (
             <View style={styles.progressContainer}>
-              <View 
+              <ThemedView 
                 style={[
                   styles.progressBar, 
                   { 
-                    backgroundColor: theme.colors.background,
                     width: '100%'
                   }
                 ]}
@@ -99,10 +99,10 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
                     }
                   ]}
                 />
-              </View>
-              <Text style={[styles.progressText, { color: theme.colors.text }]}>
+              </ThemedView>
+              <ThemedText style={styles.progressText}>
                 {achievement.progress || 0}%
-              </Text>
+              </ThemedText>
             </View>
           )}
         </View>
@@ -120,7 +120,7 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
         { 
           backgroundColor: theme.colors.card,
           borderColor: getStatusColor() + '40',
-          opacity: achievement.status === AchievementStatus.LOCKED ? 0.7 : 1
+          opacity: achievement.status === 'locked' ? 0.7 : 1
         }
       ]}
       onPress={() => onPress?.(achievement)}
@@ -132,12 +132,12 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
         </View>
         
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+          <ThemedText style={styles.title}>
             {achievement.title}
-          </Text>
-          <Text style={[styles.category, { color: theme.colors.text + '99' }]}>
+          </ThemedText>
+          <ThemedText style={[styles.category, { color: theme.colors.textSecondary }]}>
             {achievement.category}
-          </Text>
+          </ThemedText>
         </View>
         
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '20' }]}>
@@ -148,18 +148,13 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
         </View>
       </View>
       
-      <Text style={[styles.description, { color: theme.colors.text + 'CC' }]}>
+      <ThemedText style={[styles.description, { opacity: 0.8 }]}>
         {achievement.description}
-      </Text>
+      </ThemedText>
       
-      {achievement.status === AchievementStatus.IN_PROGRESS && (
+      {achievement.status === 'in_progress' && (
         <View style={styles.progressContainer}>
-          <View 
-            style={[
-              styles.progressBar, 
-              { backgroundColor: theme.colors.background }
-            ]}
-          >
+          <ThemedView style={styles.progressBar}>
             <View 
               style={[
                 styles.progressFill, 
@@ -169,26 +164,26 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
                 }
               ]}
             />
-          </View>
-          <Text style={[styles.progressText, { color: theme.colors.text }]}>
+          </ThemedView>
+          <ThemedText style={styles.progressText}>
             {achievement.progress || 0}% Complete
-          </Text>
+          </ThemedText>
         </View>
       )}
       
-      {(achievement.status === AchievementStatus.COMPLETED || 
-        achievement.status === AchievementStatus.CLAIMED) && 
+      {(achievement.status === 'completed' || 
+        achievement.status === 'claimed') && 
         achievement.unlockedAt && (
-        <Text style={[styles.unlockedText, { color: theme.colors.text + '99' }]}>
-          {achievement.status === AchievementStatus.COMPLETED ? 'Completed' : 'Claimed'} on{' '}
+        <ThemedText style={[styles.unlockedText, { color: theme.colors.textSecondary }]}>
+          {achievement.status === 'completed' ? 'Completed' : 'Claimed'} on{' '}
           {new Date(achievement.unlockedAt).toLocaleDateString()}
-        </Text>
+        </ThemedText>
       )}
       
       <View style={styles.rewardContainer}>
-        <Text style={[styles.rewardLabel, { color: theme.colors.text + '99' }]}>
+        <ThemedText style={[styles.rewardLabel, { color: theme.colors.textSecondary }]}>
           Reward:
-        </Text>
+        </ThemedText>
         <View style={styles.rewardContent}>
           <Ionicons 
             name={
@@ -201,18 +196,20 @@ export function AchievementCard({ achievement, onPress, compact = false }: Achie
             size={16} 
             color={theme.colors.primary} 
           />
-          <Text style={[styles.rewardText, { color: theme.colors.text }]}>
+          <ThemedText style={styles.rewardText}>
             {achievement.reward.title}
-          </Text>
+          </ThemedText>
         </View>
       </View>
       
-      {achievement.status === AchievementStatus.COMPLETED && (
+      {achievement.status === 'completed' && (
         <TouchableOpacity
           style={[styles.claimButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => onPress?.(achievement)}
         >
-          <Text style={styles.claimButtonText}>Claim Reward</Text>
+          <ThemedText style={[styles.claimButtonText, { color: theme.colors.white }]}>
+            Claim Reward
+          </ThemedText>
         </TouchableOpacity>
       )}
     </TouchableOpacity>

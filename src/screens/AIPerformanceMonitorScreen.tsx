@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import aiPerformanceMonitor, { MetricType } from '@/utils/performance/AIPerformanceMonitor';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +27,7 @@ type MetricDisplayData = {
 };
 
 const AIPerformanceMonitorScreen: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<MetricDisplayData[]>([]);
@@ -203,10 +203,10 @@ const AIPerformanceMonitorScreen: React.FC = () => {
     return (
       <View key={item.type} style={styles.metricItem}>
         <View style={styles.metricHeader}>
-          <Text style={[styles.metricLabel, { color: theme.colors.text.primary }]}>
+          <Text style={[styles.metricLabel, { color: theme.colors.text }]}>
             {item.label}
           </Text>
-          <Text style={[styles.metricCount, { color: theme.colors.text.secondary }]}>
+          <Text style={[styles.metricCount, { color: theme.colors.textSecondary }]}>
             {item.count} samples
           </Text>
         </View>
@@ -217,7 +217,7 @@ const AIPerformanceMonitorScreen: React.FC = () => {
             { 
               color: hasTarget 
                 ? (meetsTarget ? '#4CAF50' : '#FF5722') 
-                : theme.colors.text.primary 
+                : theme.colors.text 
             }
           ]}>
             {item.value.toFixed(2)} {item.unit}
@@ -253,7 +253,7 @@ const AIPerformanceMonitorScreen: React.FC = () => {
         
         {item.recent !== item.value && (
           <View style={styles.recentContainer}>
-            <Text style={[styles.recentLabel, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.recentLabel, { color: theme.colors.textSecondary }]}>
               Recent (last 5):
             </Text>
             <Text style={[
@@ -282,9 +282,9 @@ const AIPerformanceMonitorScreen: React.FC = () => {
           style={styles.backButton}
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           AI Performance Monitor
         </Text>
         <View style={styles.headerRight}>
@@ -310,11 +310,11 @@ const AIPerformanceMonitorScreen: React.FC = () => {
           <Ionicons 
             name={isMonitoringEnabled ? "eye" : "eye-off"} 
             size={20} 
-            color={isMonitoringEnabled ? '#FFFFFF' : theme.colors.text.secondary} 
+            color={isMonitoringEnabled ? '#FFFFFF' : theme.colors.textSecondary} 
           />
           <Text style={[
             styles.toggleText,
-            { color: isMonitoringEnabled ? '#FFFFFF' : theme.colors.text.secondary }
+            { color: isMonitoringEnabled ? '#FFFFFF' : theme.colors.textSecondary }
           ]}>
             {isMonitoringEnabled ? 'Monitoring On' : 'Monitoring Off'}
           </Text>
@@ -340,7 +340,7 @@ const AIPerformanceMonitorScreen: React.FC = () => {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
             Loading metrics...
           </Text>
         </View>
@@ -348,24 +348,24 @@ const AIPerformanceMonitorScreen: React.FC = () => {
         <ScrollView style={styles.content}>
           {metrics.length === 0 || metrics.every(m => m.count === 0) ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="analytics-outline" size={48} color={theme.colors.text.secondary} />
-              <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
+              <Ionicons name="analytics-outline" size={48} color={theme.colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
                 No performance metrics available.
               </Text>
-              <Text style={[styles.emptySubtext, { color: theme.colors.text.secondary }]}>
+              <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
                 Use the AI Assistant to generate performance data.
               </Text>
             </View>
           ) : (
             <View>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Performance Metrics
               </Text>
               {metrics.map(renderMetricItem)}
               
               <View style={styles.infoContainer}>
-                <Ionicons name="information-circle-outline" size={16} color={theme.colors.text.secondary} />
-                <Text style={[styles.infoText, { color: theme.colors.text.secondary }]}>
+                <Ionicons name="information-circle-outline" size={16} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
                   Values shown are averages across all collected data. "Recent" shows the average of the last 5 measurements.
                 </Text>
               </View>

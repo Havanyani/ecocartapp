@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoCart Minimal Web Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f9f4;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+        h1 {
+            color: #34D399;
+            margin-top: 0;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            background-color: #34D399;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        button {
+            background-color: #34D399;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background-color: #2eba85;
+        }
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">EC</div>
+        <h1>EcoCart Minimal Web Test</h1>
+        <p>This basic HTML page confirms that your browser can display content correctly.</p>
+        
+        <button id="testButton">Run Basic Tests</button>
+        
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Show status with a given message and type (success/error)
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.style.display = 'block';
+            statusElement.innerHTML = message;
+            
+            if (type === 'success') {
+                statusElement.style.backgroundColor = '#d4edda';
+                statusElement.style.color = '#155724';
+            } else if (type === 'error') {
+                statusElement.style.backgroundColor = '#f8d7da';
+                statusElement.style.color = '#721c24';
+            } else {
+                statusElement.style.backgroundColor = '#f1f1f1';
+                statusElement.style.color = '#333';
+            }
+        }
+        
+        // Test button click handler
+        document.getElementById('testButton').addEventListener('click', function() {
+            try {
+                // Basic tests
+                const tests = [
+                    { name: 'JavaScript Execution', result: true },
+                    { name: 'DOM Manipulation', result: document.querySelector('.container') !== null },
+                    { name: 'localStorage', result: 'localStorage' in window },
+                    { name: 'Fetch API', result: 'fetch' in window }
+                ];
+                
+                // Display results
+                let resultsHTML = '<h3>Basic Tests</h3><ul>';
+                let allPassed = true;
+                
+                tests.forEach(test => {
+                    resultsHTML += `<li>${test.name}: ${test.result ? '✅ Pass' : '❌ Fail'}</li>`;
+                    if (!test.result) allPassed = false;
+                });
+                
+                resultsHTML += '</ul>';
+                resultsHTML += allPassed ? 
+                    '<p><strong>All tests passed! Your browser can run basic web applications.</strong></p>' :
+                    '<p><strong>Some tests failed. There might be issues with your browser configuration.</strong></p>';
+                
+                // Add a link to open the full web version
+                resultsHTML += '<p><a href="./basic-test.html" style="color: #34D399; text-decoration: none;">Open Full Web Version</a></p>';
+                
+                showStatus(resultsHTML, allPassed ? 'success' : 'error');
+            } catch (error) {
+                showStatus(`<p>Error running tests: ${error.message}</p>`, 'error');
+            }
+        });
+    </script>
+</body>
+</html> 

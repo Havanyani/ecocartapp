@@ -6,9 +6,9 @@
  */
 
 import { faqData } from '@/data/faq-data';
-import { AIAssistantService } from '@/services/ai/AIAssistantService';
+import AIAssistantService from '@/services/ai/AIAssistantService';
 import { CacheMatch, OptimizedAICache } from '@/services/ai/OptimizedAICache';
-import { AIPerformanceMonitor } from './AIPerformanceMonitor';
+import aiPerformanceMonitor from './AIPerformanceMonitor';
 
 /**
  * Interface for benchmark results
@@ -28,12 +28,12 @@ interface BenchmarkResult {
  * Class for running performance benchmarks on AI Assistant components
  */
 export class AIPerformanceBenchmark {
-  private monitor: AIPerformanceMonitor;
+  private monitor: aiPerformanceMonitor;
   private cache: OptimizedAICache;
   private service: AIAssistantService;
   
   constructor() {
-    this.monitor = AIPerformanceMonitor.getInstance();
+    this.monitor = aiPerformanceMonitor.getInstance();
     this.cache = OptimizedAICache.getInstance();
     this.service = AIAssistantService.getInstance();
   }
@@ -59,6 +59,9 @@ export class AIPerformanceBenchmark {
     
     // UI benchmarks
     results.push(await this.benchmarkRenderTime());
+    
+    // Memory optimization benchmark
+    results.push(await this.benchmarkMemoryOptimization());
     
     return results;
   }
@@ -391,6 +394,98 @@ export class AIPerformanceBenchmark {
       successRate: 1.0,
       details: {
         components: metrics.map(m => m.operation).filter((v, i, a) => a.indexOf(v) === i)
+      }
+    };
+  }
+  
+  /**
+   * Benchmark memory optimization features like compression and lazy loading
+   */
+  public async benchmarkMemoryOptimization(): Promise<BenchmarkResult> {
+    // Ensure cache is initialized
+    if (!this.cache.getCacheStats().initialized) {
+      await this.cache.initialize();
+    }
+    
+    // Generate a set of very large responses for testing compression
+    const largeTestData = [];
+    for (let i = 0; i < 10; i++) {
+      // Generate a long query and response
+      const query = `Long query about sustainability topic ${i} with additional context to make it longer for testing compression algorithms in our memory optimization benchmark. We need to make sure this is sufficiently long to trigger compression.`;
+      
+      // Create a long response that will definitely trigger compression
+      let longResponse = `This is a very long response about eco-sustainability topic ${i}. `;
+      // Repeat to make it longer (approximately 2KB)
+      for (let j = 0; j < 20; j++) {
+        longResponse += `Paragraph ${j} with details about sustainability, recycling, and eco-friendly practices. `;
+        longResponse += `It contains information about carbon footprints, renewable energy, waste reduction, and sustainable living. `;
+        longResponse += `This helps test our compression algorithms by providing a sufficiently large text corpus. `;
+      }
+      
+      largeTestData.push({
+        query,
+        response: longResponse
+      });
+    }
+    
+    // Test saving with compression
+    const saveStartTime = Date.now();
+    for (const item of largeTestData) {
+      await this.cache.saveResponse(item.query, item.response, {
+        source: 'Benchmark',
+        tags: ['test', 'compression']
+      });
+    }
+    const saveEndTime = Date.now();
+    
+    // Get cache stats after saving
+    const cacheStatsAfterSave = this.cache.getCacheStats();
+    
+    // Test retrieving and decompressing
+    const retrieveStartTime = Date.now();
+    const retrieveResults = [];
+    for (const item of largeTestData) {
+      const match = await this.cache.findMatch(item.query);
+      retrieveResults.push({
+        query: item.query,
+        originalLength: item.response.length,
+        retrievedLength: match?.response.length || 0,
+        retrieveSuccess: match !== null,
+        isExactMatch: match && match.similarity === 1.0
+      });
+    }
+    const retrieveEndTime = Date.now();
+    
+    // Calculate metrics
+    const saveTime = saveEndTime - saveStartTime;
+    const retrieveTime = retrieveEndTime - retrieveStartTime;
+    const avgSaveTime = saveTime / largeTestData.length;
+    const avgRetrieveTime = retrieveTime / largeTestData.length;
+    
+    // Memory usage
+    const memoryUsage = process.memoryUsage?.() || { heapUsed: 0 };
+    const memoryUsageMB = memoryUsage.heapUsed / (1024 * 1024);
+    
+    // Calculate compression stats
+    const successfulRetrievals = retrieveResults.filter(r => r.retrieveSuccess);
+    const retrieveSuccessRate = successfulRetrievals.length / retrieveResults.length;
+    
+    return {
+      name: 'Memory Optimization',
+      avgTime: (avgSaveTime + avgRetrieveTime) / 2,
+      minTime: Math.min(avgSaveTime, avgRetrieveTime),
+      maxTime: Math.max(avgSaveTime, avgRetrieveTime),
+      totalRuns: largeTestData.length * 2, // Save + retrieve
+      successRate: retrieveSuccessRate,
+      memoryUsage: memoryUsageMB,
+      details: {
+        compressionStats: {
+          averageSaveTime: avgSaveTime,
+          averageRetrieveTime: avgRetrieveTime,
+          totalResponseSize: largeTestData.reduce((sum, item) => sum + item.response.length, 0),
+          cacheStatsAfterSave
+        },
+        retrieveResults: retrieveResults.slice(0, 3) // Include a few sample results
       }
     };
   }

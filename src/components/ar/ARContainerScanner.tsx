@@ -1,263 +1,280 @@
-import { useIsFocused } from '@react-navigation/native';
-import * as tf from '@tensorflow/tfjs';
-import { cameraWithTensors } from '@tensorflow/tfjs-react-native';
-import { Camera } from 'expo-camera';
-import * as MediaLibrary from 'expo-media-library';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Camera, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import ARGuideOverlay from './ARGuideOverlay';
 
-import { ARContainerRecognitionService } from '@/services/ARContainerRecognitionService';
-import { ARContainerScannerProps, ARViewState, DetectionResult, RecognizedContainer } from '@/types/ar';
-import ContainerInfoOverlay from './ContainerInfoOverlay';
-import ScanGuide from './ScanGuide';
+// Interface for component props
+export interface ARContainerScannerProps {
+  navigation: any;
+  failRecognition?: boolean; // For testing
+}
 
-const TensorCamera = cameraWithTensors(Camera);
-
-// Camera preview size - match this to the input size expected by the model
-const TENSOR_WIDTH = 300;
-const TENSOR_HEIGHT = 300;
-
-export default function ARContainerScanner({
-  onContainerDetected,
-  onError,
-  style,
-  showGuide = true,
-  saveDetectedImages = false,
-  detectionInterval = 700, // ms between detections
-}: ARContainerScannerProps) {
-  const isFocused = useIsFocused();
+/**
+ * AR Container Scanner component for scanning and recognizing recycling containers
+ */
+export default function ARContainerScanner({ navigation, failRecognition = false }: ARContainerScannerProps) {
+  const { theme } = useTheme();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraReady, setCameraReady] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [containerDetected, setContainerDetected] = useState(false);
+  const [detectedContainer, setDetectedContainer] = useState<{
+    type: string;
+    material: string;
+    confidence: number;
+    imageData: string;
+  } | null>(null);
+  
   const cameraRef = useRef<Camera>(null);
-  const recognitionService = useRef<ARContainerRecognitionService>(
-    ARContainerRecognitionService.getInstance()
-  );
-
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [lastAnalysisTime, setLastAnalysisTime] = useState(0);
-
-  const [viewState, setViewState] = useState<ARViewState>({
-    isInitialized: false,
-    isModelLoading: true,
-    isDetecting: false,
-    isCameraReady: false,
-    detectedContainers: [],
-    error: null,
-  });
-
-  // Ask for camera and media library permissions
+  
+  // Request camera permissions on mount
   useEffect(() => {
     (async () => {
-      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-      let mediaLibraryStatus = { status: 'granted' };
-      
-      if (saveDetectedImages) {
-        mediaLibraryStatus = await MediaLibrary.requestPermissionsAsync();
+      if (!cameraPermission?.granted) {
+        await requestCameraPermission();
       }
-      
-      setHasPermission(
-        cameraStatus === 'granted' && 
-        mediaLibraryStatus.status === 'granted'
-      );
     })();
-  }, [saveDetectedImages]);
-
-  // Initialize TensorFlow.js
-  useEffect(() => {
-    if (!isFocused) return;
-
-    const setupTf = async () => {
-      try {
-        setViewState(prev => ({ ...prev, isInitialized: false, isModelLoading: true }));
-
-        // Wait for the recognition service to be ready
-        const isServiceReady = recognitionService.current.isReady();
-        if (!isServiceReady) {
-          // We're waiting for the service to initialize in its constructor
-          // This is a simplification - in a production app, we would handle this more robustly
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        setViewState(prev => ({ 
-          ...prev, 
-          isInitialized: true, 
-          isModelLoading: false 
-        }));
-      } catch (error) {
-        console.error('Failed to set up TensorFlow:', error);
-        setViewState(prev => ({ 
-          ...prev, 
-          error: 'Failed to initialize AR scanner. Please try again.' 
-        }));
-        onError?.('Failed to initialize AR scanner');
+  }, [cameraPermission, requestCameraPermission]);
+  
+  // Handle camera ready state
+  const handleCameraReady = () => {
+    setCameraReady(true);
+  };
+  
+  // Scan for container
+  const scanForContainer = async () => {
+    if (!cameraReady || isScanning) return;
+    
+    setIsScanning(true);
+    setContainerDetected(false);
+    setDetectedContainer(null);
+    
+    try {
+      // Take a picture
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8,
+          base64: true,
+        });
+        
+        // In a real app, we would send this to our ML model
+        // Here we simulate the recognition process
+        simulateContainerRecognition(photo.base64 || '');
       }
-    };
-
-    setupTf();
-
-    return () => {
-      // Clean up when component unmounts
-      setViewState(prev => ({ ...prev, isInitialized: false }));
-    };
-  }, [isFocused, onError]);
-
-  // Camera ready handler
-  const handleCameraReady = useCallback(() => {
-    setViewState(prev => ({ ...prev, isCameraReady: true }));
-  }, []);
-
-  // Handle tensor camera stream
-  const handleCameraStream = useCallback(
-    (images: IterableIterator<tf.Tensor3D>) => {
-      const detectObjects = async () => {
-        if (!viewState.isInitialized || viewState.isDetecting || !isFocused) {
-          return;
-        }
-
-        // Throttle detection frequency
-        const now = Date.now();
-        if (now - lastAnalysisTime < detectionInterval) {
-          return;
-        }
-
-        try {
-          setViewState(prev => ({ ...prev, isDetecting: true }));
-          setLastAnalysisTime(now);
-
-          // Get the next tensor
-          const nextImageTensor = images.next().value;
-
-          if (nextImageTensor) {
-            // Detect objects in the image
-            const detectionResults: DetectionResult[] = 
-              await recognitionService.current.detectObjects(nextImageTensor);
-
-            // Process the detection results to identify containers
-            const containers: RecognizedContainer[] = 
-              recognitionService.current.recognizeContainers(detectionResults);
-
-            if (containers.length > 0) {
-              // Take a photo if we should save detected images
-              if (saveDetectedImages && cameraRef.current) {
-                try {
-                  const photo = await cameraRef.current.takePictureAsync();
-                  await MediaLibrary.saveToLibraryAsync(photo.uri);
-                  
-                  // Add image URI to the container
-                  containers[0].imageUri = photo.uri;
-                } catch (photoError) {
-                  console.error('Failed to save photo:', photoError);
-                }
-              }
-
-              // Update state with detected containers
-              setViewState(prev => ({
-                ...prev,
-                detectedContainers: containers,
-              }));
-
-              // Notify parent component about detected containers
-              containers.forEach(container => {
-                onContainerDetected?.(container);
-              });
-            }
-
-            // Dispose of the tensor to free memory
-            tf.dispose(nextImageTensor);
-          }
-        } catch (error) {
-          console.error('Error during object detection:', error);
-          setViewState(prev => ({ 
-            ...prev, 
-            error: 'Error during container detection' 
-          }));
-          onError?.('Error during container detection');
-        } finally {
-          setViewState(prev => ({ ...prev, isDetecting: false }));
-        }
-      };
-
-      // Start detection loop
-      const intervalId = setInterval(detectObjects, 100);
-      return () => clearInterval(intervalId);
-    },
-    [
-      viewState.isInitialized, 
-      viewState.isDetecting, 
-      lastAnalysisTime, 
-      isFocused, 
-      detectionInterval, 
-      saveDetectedImages, 
-      onContainerDetected, 
-      onError
-    ]
-  );
-
-  // Permission denied state
-  if (hasPermission === false) {
+    } catch (error) {
+      console.error('Error scanning for container:', error);
+      Alert.alert('Error', 'Failed to capture image. Please try again.');
+      setIsScanning(false);
+    }
+  };
+  
+  // Simulate container recognition (would be an API call in a real app)
+  const simulateContainerRecognition = (imageData: string) => {
+    // Simulate processing delay
+    setTimeout(() => {
+      if (failRecognition) {
+        setIsScanning(false);
+        Alert.alert(
+          'Recognition Failed', 
+          'Couldn\'t recognize the container. Please try again with better lighting or positioning.'
+        );
+        return;
+      }
+      
+      // Simulate successful detection
+      setContainerDetected(true);
+      setDetectedContainer({
+        type: 'Bottle',
+        material: 'Plastic (PET)',
+        confidence: 0.92,
+        imageData: imageData,
+      });
+      
+      setIsScanning(false);
+    }, 2000);
+  };
+  
+  // Open image gallery
+  const openGallery = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please grant access to your photo library to use this feature.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+      
+      if (!result.canceled && result.assets && result.assets[0]) {
+        // In a real app, we would send this to our ML model
+        setIsScanning(true);
+        simulateContainerRecognition(result.assets[0].base64 || '');
+      }
+    } catch (error) {
+      console.error('Error opening gallery:', error);
+      Alert.alert('Error', 'Failed to open photo library. Please try again.');
+    }
+  };
+  
+  // Navigate to contribution form
+  const handleContribute = () => {
+    if (detectedContainer) {
+      navigation.navigate('ContainerContributionForm', {
+        imageData: detectedContainer.imageData,
+        containerType: detectedContainer.type,
+        materialType: detectedContainer.material,
+      });
+    }
+  };
+  
+  // Handle retrying scan
+  const handleRetry = () => {
+    setContainerDetected(false);
+    setDetectedContainer(null);
+  };
+  
+  // Show loading while requesting permissions
+  if (!cameraPermission) {
     return (
-      <View style={[styles.container, style]}>
-        <Text style={styles.errorText}>
-          Camera and media library permissions are required to use this feature.
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]} testID="loading-container">
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.text, { color: theme.colors.text }]}>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+  
+  // Show message if permission denied
+  if (!cameraPermission.granted) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <MaterialCommunityIcons name="camera-off" size={64} color={theme.colors.error} />
+        <Text style={[styles.text, { color: theme.colors.text }]}>
+          Camera permission is required to use this feature.
         </Text>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          onPress={requestCameraPermission}
+        >
+          <Text style={styles.buttonText}>Request Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
-
-  // Loading state
-  if (hasPermission === null || viewState.isModelLoading) {
-    return (
-      <View style={[styles.container, style]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>Initializing AR scanner...</Text>
-      </View>
-    );
-  }
-
-  // Error state
-  if (viewState.error) {
-    return (
-      <View style={[styles.container, style]}>
-        <Text style={styles.errorText}>{viewState.error}</Text>
-      </View>
-    );
-  }
-
+  
   return (
-    <View style={[styles.container, style]}>
-      {viewState.isInitialized && (
-        <TensorCamera
-          ref={cameraRef}
-          style={styles.camera}
-          type={Camera.Constants.Type.back}
-          onCameraReady={handleCameraReady}
-          cameraTextureWidth={TENSOR_WIDTH}
-          cameraTextureHeight={TENSOR_HEIGHT}
-          resizeWidth={TENSOR_WIDTH}
-          resizeHeight={TENSOR_HEIGHT}
-          resizeDepth={3}
-          autorender={true}
-          useCustomShadersToResize={false}
-          onReady={handleCameraStream}
+    <View style={styles.container}>
+      {/* Camera View */}
+      <Camera
+        ref={cameraRef}
+        style={styles.camera}
+        type={Camera.Constants.Type.back}
+        onCameraReady={handleCameraReady}
+        testID="camera-view"
+      >
+        {/* Guide Overlay */}
+        <ARGuideOverlay
+          isScanning={isScanning}
+          containerDetected={containerDetected}
+          testID="guide-overlay"
         />
-      )}
-
-      {/* Scanning guide overlay */}
-      {showGuide && <ScanGuide isActive={!viewState.isDetecting} />}
-
-      {/* Container information overlay */}
-      {viewState.detectedContainers.length > 0 && (
-        <ContainerInfoOverlay 
-          container={viewState.detectedContainers[0]} 
-          onClose={() => setViewState(prev => ({ ...prev, detectedContainers: [] }))}
-        />
-      )}
-
-      {/* Processing indicator */}
-      {viewState.isDetecting && (
-        <View style={styles.processingOverlay}>
-          <ActivityIndicator size="small" color="#ffffff" />
-          <Text style={styles.processingText}>Processing...</Text>
+        
+        {/* UI Controls */}
+        <View style={styles.controlsContainer}>
+          {/* Scanning UI */}
+          {!containerDetected && (
+            <>
+              <View style={styles.messageContainer}>
+                {isScanning && (
+                  <Text style={styles.scanningText}>Analyzing image...</Text>
+                )}
+              </View>
+              
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
+                  onPress={openGallery}
+                  disabled={isScanning}
+                  testID="gallery-button"
+                >
+                  <MaterialCommunityIcons 
+                    name="image" 
+                    size={28} 
+                    color={theme.colors.primary} 
+                  />
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.scanButton,
+                    { 
+                      backgroundColor: isScanning 
+                        ? theme.colors.disabled 
+                        : theme.colors.primary 
+                    }
+                  ]}
+                  onPress={scanForContainer}
+                  disabled={isScanning || !cameraReady}
+                  testID="scan-button"
+                >
+                  <Text style={styles.scanButtonText}>
+                    {isScanning ? 'Scanning...' : 'Scan Container'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+          
+          {/* Container Detected UI */}
+          {containerDetected && detectedContainer && (
+            <View style={styles.detectedContainer} testID="container-detected">
+              <Text style={styles.detectedTitle}>Container Detected!</Text>
+              <Text style={styles.detectedInfo}>
+                Type: {detectedContainer.type}
+              </Text>
+              <Text style={styles.detectedInfo}>
+                Material: {detectedContainer.material}
+              </Text>
+              <Text style={styles.detectedInfo}>
+                Confidence: {Math.round(detectedContainer.confidence * 100)}%
+              </Text>
+              
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: theme.colors.notification }]}
+                  onPress={handleRetry}
+                >
+                  <Text style={styles.actionButtonText}>Retry</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={handleContribute}
+                  testID="contribute-button"
+                >
+                  <Text style={styles.actionButtonText}>Contribute</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
-      )}
+      </Camera>
     </View>
   );
 }
@@ -265,39 +282,104 @@ export default function ARContainerScanner({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative',
-    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
   camera: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
-  loadingText: {
-    color: '#fff',
-    marginTop: 10,
+  text: {
     fontSize: 16,
-  },
-  errorText: {
-    color: '#ff6b6b',
-    margin: 20,
+    marginTop: 20,
     textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '600',
     fontSize: 16,
   },
-  processingOverlay: {
+  controlsContainer: {
     position: 'absolute',
-    bottom: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 20,
-    padding: 10,
-    flexDirection: 'row',
+    bottom: 40,
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
-  processingText: {
-    color: '#fff',
-    marginLeft: 10,
+  messageContainer: {
+    marginBottom: 20,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  scanningText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  iconButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  scanButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 28,
+  },
+  scanButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  detectedContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderRadius: 12,
+    padding: 16,
+    width: '80%',
+    alignItems: 'center',
+  },
+  detectedTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  detectedInfo: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginTop: 16,
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+  actionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontWeight: '600',
     fontSize: 14,
   },
 }); 

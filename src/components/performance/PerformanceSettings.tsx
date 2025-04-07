@@ -18,7 +18,7 @@ interface PerformanceSettingsProps {
 }
 
 export function PerformanceSettings({ settings, onToggle }: PerformanceSettingsProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>

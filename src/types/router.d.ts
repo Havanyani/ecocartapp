@@ -13,6 +13,8 @@ declare module 'expo-router' {
     back: () => void;
   };
   export const useLocalSearchParams: <T = Record<string, string>>() => T;
+  export const useSegments: () => string[];
   export const Stack: ComponentType<any>;
   export const Slot: ComponentType<any>;
+  export const Tabs: ComponentType<any>;
 } 

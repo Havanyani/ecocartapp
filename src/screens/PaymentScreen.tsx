@@ -2,18 +2,19 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { isFeatureEnabled } from '@/config/featureFlags';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 export function PaymentScreen() {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   if (!isFeatureEnabled('enablePayments')) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.disabledContainer}>
-          <IconSymbol name="credit-card-off" size={64} color={theme.colors.text.secondary} />
+          <IconSymbol name="credit-card-off" size={64} color={theme.colors.textSecondary} />
           <ThemedText style={styles.disabledTitle}>Payments Disabled</ThemedText>
           <ThemedText style={styles.disabledMessage}>
             EcoCart is currently focused on waste collection and rewards. Payment features will be available soon!

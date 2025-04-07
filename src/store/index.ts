@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import apiDataReducer from './slices/apiDataSlice';
 import collectionReducer from './slices/collectionSlice';
 import { ecoCartReducer } from './slices/ecoCartSlice';
 import groceryStoreReducer from './slices/groceryStoreSlice';
@@ -19,6 +20,7 @@ export const store = configureStore({
     payment: paymentReducer,
     recyclingRewards: recyclingRewardsReducer,
     groceryStore: groceryStoreReducer,
+    apiData: apiDataReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

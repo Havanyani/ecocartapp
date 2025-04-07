@@ -1,6 +1,6 @@
 import { IconSymbol, ThemedText, ThemedView } from '@/components/ui';
 import { HapticTab } from '@/components/ui/HapticTab';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -65,7 +65,7 @@ export function AdvancedVisualization({
   onTimeframeChange,
   testID
 }: AdvancedVisualizationProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [selectedView, setSelectedView] = useState<'time' | 'type' | 'impact'>('time');
   const screenWidth = Dimensions.get('window').width;
 
@@ -73,10 +73,10 @@ export function AdvancedVisualization({
     axis: {
       style: {
         axis: {
-          stroke: theme.colors.text.primary
+          stroke: theme.colors.text
         },
         tickLabels: {
-          fill: theme.colors.text.primary
+          fill: theme.colors.text
         }
       }
     }

@@ -6,9 +6,9 @@
  */
 
 import { ApiService } from './ApiService';
-import { CreditsService } from './CreditsService';
-import { NotificationService } from './NotificationService';
-import { OfflineManager } from './OfflineManager';
+import { CreditService } from './CreditService';
+import NotificationService from './NotificationService';
+import OfflineManager from './OfflineManager';
 
 // Supported grocery store providers
 export enum GroceryProvider {
@@ -311,7 +311,8 @@ export class GroceryIntegrationService {
   public async redeemCredits(request: CreditRedemptionRequest): Promise<CreditRedemptionResponse> {
     try {
       // Validate if user has enough credits
-      const availableCredits = await CreditsService.getInstance().getUserCredits();
+      const userId = 'current-user'; // Get from auth service in a real implementation
+      const availableCredits = await CreditService.getUserCredits(userId);
       if (availableCredits < request.amount) {
         throw new Error('Insufficient credits for this redemption');
       }
@@ -322,7 +323,7 @@ export class GroceryIntegrationService {
       );
       
       // Update local credit balance
-      await CreditsService.getInstance().subtractCredits(request.amount);
+      await CreditService.useCredits(userId, request.amount);
       
       // Send notification about credits usage
       NotificationService.getInstance().sendLocalNotification({

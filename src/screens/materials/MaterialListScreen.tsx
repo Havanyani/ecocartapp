@@ -1,53 +1,129 @@
 /**
  * MaterialListScreen.tsx
  * 
- * A screen that displays a list of recyclable materials with offline data support.
+ * A screen that displays a list of recyclable materials with search, filtering, and sorting.
  * Uses the MaterialsApi to fetch data and caches it for offline access.
  */
 
+import { Material, useMaterials } from '@/api/MaterialsApi';
+import { OptimizedListView } from '@/components/ui/OptimizedListView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import useNetworkStatus from '@/hooks/useNetworkStatus';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import Slider from '@react-native-community/slider';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
-    FlatList,
     Image,
+    Modal,
     RefreshControl,
     ScrollView,
     StyleSheet,
-    Text,
+    TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Material, useMaterials } from '@/api/MaterialsApi';
-import useNetworkStatus from '@/hooks/useNetworkStatus';
+
+// Possible sort options
+type SortOption = 'name' | 'recyclingRate' | 'category';
+
+// Filter options
+interface FilterOptions {
+  search: string;
+  category: string | null;
+  isHazardous: boolean | null;
+  minRecyclingRate: number;
+}
 
 interface MaterialListScreenProps {
   navigation: any;
 }
 
 export default function MaterialListScreen({ navigation }: MaterialListScreenProps) {
-  // State for category filter
-  const [filter, setFilter] = useState<string | null>(null);
+  const theme = useTheme()();
+  const { isOnline, networkDetails, canPerformOperation } = useNetworkStatus();
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  
+  // State for filtering and sorting
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    search: '',
+    category: null,
+    isHazardous: null,
+    minRecyclingRate: 0,
+  });
+  
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Use the materials hook with filtering
-  const materialParams = filter ? { category: filter } : undefined;
   const {
-    materials,
+    materials: allMaterials,
     isLoading,
     error,
-    isOnline,
     loadMaterials
-  } = useMaterials(materialParams);
+  } = useMaterials();
 
-  // Get more detailed network information
-  const { networkDetails, canPerformOperation } = useNetworkStatus();
+  // Filter and sort materials
+  const materials = useMemo(() => {
+    if (!allMaterials) return [];
+    
+    // First apply filters
+    let filteredMaterials = allMaterials.filter(material => {
+      // Search text filter
+      if (filterOptions.search && !material.name.toLowerCase().includes(filterOptions.search.toLowerCase()) &&
+          !material.description.toLowerCase().includes(filterOptions.search.toLowerCase())) {
+        return false;
+      }
+      
+      // Category filter
+      if (filterOptions.category && material.category !== filterOptions.category) {
+        return false;
+      }
+      
+      // Hazardous filter
+      if (filterOptions.isHazardous !== null && material.isHazardous !== filterOptions.isHazardous) {
+        return false;
+      }
+      
+      // Recycling rate filter
+      if (material.recyclingRate < filterOptions.minRecyclingRate) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Then sort
+    return filteredMaterials.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'recyclingRate':
+          comparison = a.recyclingRate - b.recyclingRate;
+          break;
+        case 'category':
+          comparison = a.category.localeCompare(b.category);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [allMaterials, filterOptions, sortBy, sortDirection]);
 
-  // Load materials on component mount
-  useEffect(() => {
-    loadMaterials();
-  }, [loadMaterials]);
+  // Load materials on component mount and when returning to the screen
+  useFocusEffect(
+    useCallback(() => {
+      loadMaterials();
+    }, [loadMaterials])
+  );
 
   // Handle refresh (pull-to-refresh)
   const handleRefresh = useCallback(async () => {
@@ -68,33 +144,72 @@ export default function MaterialListScreen({ navigation }: MaterialListScreenPro
   }, [navigation]);
 
   // Get unique categories for filter buttons
-  const categories = [...new Set(materials?.map(m => m.category) || [])];
+  const categories = useMemo(() => {
+    if (!allMaterials) return [];
+    return [...new Set(allMaterials.map(m => m.category))];
+  }, [allMaterials]);
+
+  // Handle search input
+  const handleSearch = (text: string) => {
+    setFilterOptions(prev => ({ ...prev, search: text }));
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilterOptions({
+      search: '',
+      category: null,
+      isHazardous: null,
+      minRecyclingRate: 0
+    });
+  };
+
+  // Toggle sort direction
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Change sort field
+  const handleSortChange = (option: SortOption) => {
+    if (sortBy === option) {
+      toggleSortDirection();
+    } else {
+      setSortBy(option);
+      setSortDirection('asc');
+    }
+  };
+
+  // Handle barcode scan
+  const handleBarcodeScan = () => {
+    navigation.navigate('BarcodeScanner');
+  };
 
   // Render a material card
   const renderMaterialItem = useCallback(({ item }: { item: Material }) => (
     <TouchableOpacity
-      style={styles.materialCard}
+      style={[styles.materialCard, { backgroundColor: theme.colors.card }]}
       onPress={() => handleMaterialPress(item)}
+      testID={`material-card-${item.id}`}
     >
       <View style={styles.materialHeader}>
-        <Text style={styles.materialName}>{item.name}</Text>
+        <ThemedText style={styles.materialName}>{item.name}</ThemedText>
         {item.isHazardous && (
           <View style={styles.hazardousTag}>
             <Ionicons name="warning" size={12} color="#FFFFFF" />
-            <Text style={styles.hazardousText}>Hazardous</Text>
+            <ThemedText style={styles.hazardousText}>Hazardous</ThemedText>
           </View>
         )}
       </View>
       
       <View style={styles.materialBody}>
         <View style={styles.materialInfo}>
-          <Text style={styles.categoryText}>{item.category}</Text>
-          <Text style={styles.materialDescription} numberOfLines={2}>
+          <ThemedText style={styles.categoryText}>{item.category}</ThemedText>
+          <ThemedText style={styles.materialDescription} numberOfLines={2}>
             {item.description}
-          </Text>
+          </ThemedText>
           
           <View style={styles.recyclingRateContainer}>
-            <Text style={styles.recyclingRateLabel}>Recycling Rate:</Text>
+            <ThemedText style={styles.recyclingRateLabel}>Recycling Rate:</ThemedText>
             <View style={styles.recyclingRateBarContainer}>
               <View 
                 style={[
@@ -106,11 +221,11 @@ export default function MaterialListScreen({ navigation }: MaterialListScreenPro
                 ]} 
               />
             </View>
-            <Text style={styles.recyclingRateText}>{item.recyclingRate}%</Text>
+            <ThemedText style={styles.recyclingRateText}>{item.recyclingRate}%</ThemedText>
           </View>
         </View>
         
-        {/* Placeholder or actual image */}
+        {/* Material image */}
         <View style={styles.materialImageContainer}>
           {item.imageUrl ? (
             <Image 
@@ -119,101 +234,184 @@ export default function MaterialListScreen({ navigation }: MaterialListScreenPro
               resizeMode="cover"
             />
           ) : (
-            <View style={styles.materialImagePlaceholder}>
-              <Ionicons name="leaf" size={40} color="#34C759" />
+            <View style={[styles.materialImagePlaceholder, { backgroundColor: theme.colors.card }]}>
+              <Ionicons name="leaf" size={40} color={theme.colors.primary} />
             </View>
           )}
         </View>
       </View>
       
       <View style={styles.materialFooter}>
-        <Text style={styles.acceptedFormsLabel}>Accepted Forms:</Text>
+        <ThemedText style={styles.acceptedFormsLabel}>Accepted Forms:</ThemedText>
         <View style={styles.acceptedFormsContainer}>
           {item.acceptedForms.map((form, index) => (
-            <View key={index} style={styles.acceptedFormTag}>
-              <Text style={styles.acceptedFormText}>{form}</Text>
+            <View key={index} style={[styles.acceptedFormTag, { backgroundColor: theme.colors.primary + '20' }]}>
+              <ThemedText style={styles.acceptedFormText}>{form}</ThemedText>
             </View>
           ))}
         </View>
       </View>
     </TouchableOpacity>
-  ), [handleMaterialPress]);
+  ), [handleMaterialPress, theme.colors]);
 
-  // Render filter buttons
-  const renderFilterButtons = useCallback(() => (
-    <View style={styles.filterContainer}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterButtonsContainer}
-      >
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === null && styles.filterButtonActive
-          ]}
-          onPress={() => setFilter(null)}
-        >
-          <Text style={[
-            styles.filterButtonText,
-            filter === null && styles.filterButtonTextActive
-          ]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        
-        {categories.map((category, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.filterButton,
-              filter === category && styles.filterButtonActive
-            ]}
-            onPress={() => setFilter(category)}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              filter === category && styles.filterButtonTextActive
-            ]}>
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  ), [filter, categories]);
-
-  // Show loading indicator
-  if (isLoading && !materials?.length) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#34C759" />
-        <Text style={styles.loadingText}>Loading materials...</Text>
-      </View>
-    );
-  }
-
-  // Show error state
-  if (error && !materials?.length) {
-    return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle" size={64} color="#FF3B30" />
-        <Text style={styles.errorTitle}>Failed to load materials</Text>
-        <Text style={styles.errorText}>{error.message}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => loadMaterials()}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Render filter modal
+  const renderFilterModal = () => (
+    <Modal
+      visible={isFilterModalVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setIsFilterModalVisible(false)}
+    >
+      <TouchableWithoutFeedback onPress={() => setIsFilterModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+            <ThemedView style={styles.filterModalContainer}>
+              <View style={styles.filterModalHeader}>
+                <ThemedText variant="h2" style={styles.filterModalTitle}>Filter Materials</ThemedText>
+                <TouchableOpacity onPress={() => setIsFilterModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Category Filter */}
+              <ThemedText variant="h3" style={styles.filterSectionTitle}>Categories</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryFilterContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryFilterButton,
+                    filterOptions.category === null && { backgroundColor: theme.colors.primary }
+                  ]}
+                  onPress={() => setFilterOptions(prev => ({ ...prev, category: null }))}
+                >
+                  <ThemedText 
+                    style={[
+                      styles.categoryFilterText, 
+                      filterOptions.category === null && { color: '#fff' }
+                    ]}
+                  >
+                    All
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                {categories.map((category, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.categoryFilterButton,
+                      filterOptions.category === category && { backgroundColor: theme.colors.primary }
+                    ]}
+                    onPress={() => setFilterOptions(prev => ({ ...prev, category }))}
+                  >
+                    <ThemedText 
+                      style={[
+                        styles.categoryFilterText, 
+                        filterOptions.category === category && { color: '#fff' }
+                      ]}
+                    >
+                      {category}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              
+              {/* Hazardous Filter */}
+              <ThemedText variant="h3" style={styles.filterSectionTitle}>Hazardous Materials</ThemedText>
+              <View style={styles.hazardousFilterContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.hazardousFilterButton,
+                    filterOptions.isHazardous === null && { backgroundColor: theme.colors.primary }
+                  ]}
+                  onPress={() => setFilterOptions(prev => ({ ...prev, isHazardous: null }))}
+                >
+                  <ThemedText 
+                    style={[
+                      styles.hazardousFilterText, 
+                      filterOptions.isHazardous === null && { color: '#fff' }
+                    ]}
+                  >
+                    All
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.hazardousFilterButton,
+                    filterOptions.isHazardous === false && { backgroundColor: theme.colors.primary }
+                  ]}
+                  onPress={() => setFilterOptions(prev => ({ ...prev, isHazardous: false }))}
+                >
+                  <ThemedText 
+                    style={[
+                      styles.hazardousFilterText, 
+                      filterOptions.isHazardous === false && { color: '#fff' }
+                    ]}
+                  >
+                    Non-Hazardous
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.hazardousFilterButton,
+                    filterOptions.isHazardous === true && { backgroundColor: theme.colors.primary }
+                  ]}
+                  onPress={() => setFilterOptions(prev => ({ ...prev, isHazardous: true }))}
+                >
+                  <ThemedText 
+                    style={[
+                      styles.hazardousFilterText, 
+                      filterOptions.isHazardous === true && { color: '#fff' }
+                    ]}
+                  >
+                    Hazardous Only
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Recycling Rate Slider */}
+              <ThemedText variant="h3" style={styles.filterSectionTitle}>
+                Minimum Recycling Rate: {filterOptions.minRecyclingRate}%
+              </ThemedText>
+              <Slider
+                style={styles.recyclingRateSlider}
+                minimumValue={0}
+                maximumValue={100}
+                step={5}
+                value={filterOptions.minRecyclingRate}
+                onValueChange={(value) => setFilterOptions(prev => ({ ...prev, minRecyclingRate: value }))}
+                minimumTrackTintColor={theme.colors.primary}
+                maximumTrackTintColor={theme.colors.border}
+                thumbTintColor={theme.colors.primary}
+              />
+              
+              {/* Filter Action Buttons */}
+              <View style={styles.filterActionsContainer}>
+                <TouchableOpacity
+                  style={[styles.filterActionButton, { backgroundColor: theme.colors.card }]}
+                  onPress={resetFilters}
+                >
+                  <ThemedText>Reset Filters</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.filterActionButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => setIsFilterModalVisible(false)}
+                >
+                  <ThemedText style={{ color: '#fff' }}>Apply Filters</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Recyclable Materials</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <ThemedView style={styles.header}>
+        <ThemedText variant="h1" style={styles.headerTitle}>Recyclable Materials</ThemedText>
         
         <View style={styles.connectionStatus}>
           <View 
@@ -222,50 +420,169 @@ export default function MaterialListScreen({ navigation }: MaterialListScreenPro
               isOnline ? styles.statusOnline : styles.statusOffline
             ]} 
           />
-          <Text style={styles.statusText}>
+          <ThemedText style={styles.statusText}>
             {isOnline ? 'Online' : 'Offline'}
-          </Text>
+          </ThemedText>
         </View>
-      </View>
+      </ThemedView>
       
-      {renderFilterButtons()}
+      {/* Search and Filter Bar */}
+      <ThemedView style={styles.searchContainer}>
+        <View style={[styles.searchInputContainer, { backgroundColor: theme.colors.card }]}>
+          <Ionicons name="search" size={20} color={theme.colors.text} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.colors.text }]}
+            placeholder="Search materials..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={filterOptions.search}
+            onChangeText={handleSearch}
+          />
+          {filterOptions.search ? (
+            <TouchableOpacity onPress={() => handleSearch('')}>
+              <Ionicons name="close-circle" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
+          onPress={() => setIsFilterModalVisible(true)}
+        >
+          <Ionicons name="options" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
+          onPress={handleBarcodeScan}
+        >
+          <Ionicons name="barcode" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+      </ThemedView>
       
-      <FlatList
+      {/* Sort Options */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.sortOptionsContainer}
+      >
+        <TouchableOpacity
+          style={[
+            styles.sortOption,
+            sortBy === 'name' && { backgroundColor: theme.colors.primary + '20' }
+          ]}
+          onPress={() => handleSortChange('name')}
+        >
+          <ThemedText style={styles.sortOptionText}>
+            Name
+            {sortBy === 'name' && (
+              <Ionicons 
+                name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'} 
+                size={16} 
+                color={theme.colors.text} 
+              />
+            )}
+          </ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.sortOption,
+            sortBy === 'category' && { backgroundColor: theme.colors.primary + '20' }
+          ]}
+          onPress={() => handleSortChange('category')}
+        >
+          <ThemedText style={styles.sortOptionText}>
+            Category
+            {sortBy === 'category' && (
+              <Ionicons 
+                name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'} 
+                size={16} 
+                color={theme.colors.text} 
+              />
+            )}
+          </ThemedText>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.sortOption,
+            sortBy === 'recyclingRate' && { backgroundColor: theme.colors.primary + '20' }
+          ]}
+          onPress={() => handleSortChange('recyclingRate')}
+        >
+          <ThemedText style={styles.sortOptionText}>
+            Recycling Rate
+            {sortBy === 'recyclingRate' && (
+              <Ionicons 
+                name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'} 
+                size={16} 
+                color={theme.colors.text} 
+              />
+            )}
+          </ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+      
+      {/* Material List */}
+      <OptimizedListView
         data={materials}
         renderItem={renderMaterialItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
+        getItemLayout={(data, index) => ({
+          length: 230, // Approximate height of each item
+          offset: 230 * index,
+          index,
+        })}
+        initialNumToRender={8}
+        windowSize={5}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={true}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
             onRefresh={handleRefresh}
-            colors={['#34C759']}
-            tintColor="#34C759"
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="trash-bin-outline" size={64} color="#C7C7CC" />
-            <Text style={styles.emptyTitle}>No Materials Found</Text>
-            <Text style={styles.emptyText}>
-              {isOnline
-                ? 'Pull down to refresh and try again'
+          <ThemedView style={styles.emptyContainer}>
+            <Ionicons name="trash-bin-outline" size={64} color={theme.colors.textSecondary} />
+            <ThemedText style={styles.emptyTitle}>No Materials Found</ThemedText>
+            <ThemedText style={styles.emptyText}>
+              {error ? 'Error loading materials' : isOnline
+                ? filterOptions.search 
+                  ? 'No materials match your search criteria' 
+                  : 'Pull down to refresh and try again'
                 : 'Connect to the internet to load materials'}
-            </Text>
-          </View>
+            </ThemedText>
+            {error && (
+              <TouchableOpacity 
+                style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+                onPress={() => loadMaterials(true)}
+              >
+                <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+              </TouchableOpacity>
+            )}
+          </ThemedView>
         }
       />
       
       {/* Network details footer */}
       {networkDetails?.type && (
-        <View style={styles.networkInfo}>
-          <Text style={styles.networkInfoText}>
+        <ThemedView style={styles.networkInfo}>
+          <ThemedText style={styles.networkInfoText}>
             Network: {networkDetails.type}
             {networkDetails.isWifi && ' (WiFi)'}
             {networkDetails.isCellular && ' (Cellular)'}
-          </Text>
-        </View>
+          </ThemedText>
+        </ThemedView>
       )}
+      
+      {/* Filter Modal */}
+      {renderFilterModal()}
     </SafeAreaView>
   );
 }
@@ -273,278 +590,310 @@ export default function MaterialListScreen({ navigation }: MaterialListScreenPro
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#8E8E93'
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF3B30',
-    marginTop: 16
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 8
-  },
-  retryButton: {
-    marginTop: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: '#2C76E5',
-    borderRadius: 8
-  },
-  retryButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF'
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA'
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000'
   },
   connectionStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12
   },
   statusIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 4
+    marginRight: 6,
   },
   statusOnline: {
-    backgroundColor: '#34C759'
+    backgroundColor: '#4CAF50',
   },
   statusOffline: {
-    backgroundColor: '#FF9500'
+    backgroundColor: '#F44336',
   },
   statusText: {
     fontSize: 12,
-    color: '#8E8E93'
   },
-  filterContainer: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA'
-  },
-  filterButtonsContainer: {
-    paddingHorizontal: 16
-  },
-  filterButton: {
-    paddingVertical: 6,
+  searchContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
-    borderRadius: 16,
+    paddingBottom: 12,
+    alignItems: 'center',
+  },
+  searchInputContainer: {
+    flex: 1,
+    height: 40,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIcon: {
     marginRight: 8,
-    backgroundColor: '#F2F2F7'
   },
-  filterButtonActive: {
-    backgroundColor: '#34C759'
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
   },
-  filterButtonText: {
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  sortOptionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sortOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderRadius: 16,
+  },
+  sortOptionText: {
     fontSize: 14,
-    color: '#8E8E93'
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold'
   },
   listContainer: {
-    padding: 16
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   materialCard: {
-    marginBottom: 16,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    marginBottom: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2
+    shadowRadius: 2,
   },
   materialHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    backgroundColor: '#F9F9F9'
   },
   materialName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000000'
+    flex: 1,
   },
   hazardousTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    backgroundColor: '#F44336',
     paddingHorizontal: 8,
-    backgroundColor: '#FF3B30',
-    borderRadius: 12
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   hazardousText: {
-    marginLeft: 4,
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFFFFF'
+    color: '#FFFFFF',
+    marginLeft: 4,
   },
   materialBody: {
     flexDirection: 'row',
-    padding: 16
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   materialInfo: {
     flex: 1,
-    marginRight: 16
+    marginRight: 16,
   },
   categoryText: {
     fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 4
+    marginBottom: 4,
   },
   materialDescription: {
     fontSize: 14,
-    color: '#000000',
-    marginBottom: 12
+    marginBottom: 12,
   },
   recyclingRateContainer: {
-    marginTop: 8
+    marginTop: 'auto',
   },
   recyclingRateLabel: {
-    fontSize: 14,
-    color: '#000000',
-    marginBottom: 4
+    fontSize: 12,
+    marginBottom: 4,
   },
   recyclingRateBarContainer: {
     height: 8,
-    backgroundColor: '#E5E5EA',
+    backgroundColor: '#E0E0E0',
     borderRadius: 4,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    marginBottom: 4,
   },
   recyclingRateBar: {
     height: '100%',
-    borderRadius: 4
   },
   highRate: {
-    backgroundColor: '#34C759'
+    backgroundColor: '#4CAF50',
   },
   mediumRate: {
-    backgroundColor: '#FF9500'
+    backgroundColor: '#FFC107',
   },
   lowRate: {
-    backgroundColor: '#FF3B30'
+    backgroundColor: '#F44336',
   },
   recyclingRateText: {
     fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 4,
-    textAlign: 'right'
+    textAlign: 'right',
   },
   materialImageContainer: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   materialImage: {
     width: '100%',
-    height: '100%'
+    height: '100%',
   },
   materialImagePlaceholder: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7'
   },
   materialFooter: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA'
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   acceptedFormsLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 8
+    fontSize: 12,
+    marginBottom: 6,
   },
   acceptedFormsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
   },
   acceptedFormTag: {
-    paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: '#EBF2FF',
-    borderRadius: 4,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginRight: 8,
-    marginBottom: 8
+    marginBottom: 4,
   },
   acceptedFormText: {
     fontSize: 12,
-    color: '#2C76E5'
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 48
+    alignItems: 'center',
+    paddingTop: 60,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8E8E93',
-    marginTop: 16
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#8E8E93',
     textAlign: 'center',
-    marginTop: 8
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   networkInfo: {
     padding: 8,
-    backgroundColor: '#F2F2F7',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA'
+    alignItems: 'center',
   },
   networkInfoText: {
     fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center'
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModalContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    paddingTop: 16,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  categoryFilterContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  categoryFilterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  categoryFilterText: {
+    fontSize: 14,
+  },
+  hazardousFilterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  hazardousFilterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  hazardousFilterText: {
+    fontSize: 14,
+  },
+  recyclingRateSlider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 16,
+  },
+  filterActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  filterActionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
 }); 

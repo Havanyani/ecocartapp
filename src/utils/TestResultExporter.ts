@@ -1,5 +1,5 @@
-import * as FileSystem from 'expo-file-system';
 import { Share } from 'react-native';
+import FileSystem from './cross-platform/fileSystem';
 
 export interface ExportOptions {
   format: 'json' | 'csv' | 'pdf';

@@ -38,13 +38,15 @@ export interface AchievementProgress {
 }
 
 /**
- * Achievement status type
+ * Achievement status enum
  */
-export type AchievementStatus = 
-  | 'NOT_STARTED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'LOCKED';
+export enum AchievementStatus {
+  NOT_STARTED = 'not_started',
+  LOCKED = 'locked',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CLAIMED = 'claimed'
+}
 
 /**
  * Reward interface
@@ -79,13 +81,6 @@ export enum AchievementCategory {
   ECO_IMPACT = 'eco_impact',
   COMMUNITY = 'community',
   APP_USAGE = 'app_usage',
-}
-
-export enum AchievementStatus {
-  LOCKED = 'locked',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CLAIMED = 'claimed',
 }
 
 export interface AchievementRequirement {

@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { RecyclingGoal } from '@/types/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -26,7 +26,7 @@ export default function GoalSettingCard({
   onCancel,
   isEditing = false
 }: GoalSettingCardProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [formData, setFormData] = useState<Omit<RecyclingGoal, 'id' | 'progress'>>(initialData);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);

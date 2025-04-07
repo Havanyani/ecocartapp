@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { BarChart, LineChart } from 'react-native-chart-kit';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { ThemedText, ThemedView } from '@/components/ui';
 import { HapticTab } from '@/components/ui/HapticTab';
 
@@ -26,7 +26,7 @@ export function ImpactVisualization({
   style,
   testID
 }: ImpactVisualizationProps): JSX.Element {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const screenWidth = Dimensions.get('window').width;
 
   const chartConfig = {

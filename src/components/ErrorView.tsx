@@ -1,7 +1,7 @@
 import { HapticButton } from '@/components/HapticButton';
 import { IconSymbol } from '@/components/IconSymbol';
 import { ThemedText } from '@/components/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 
 interface ErrorViewProps {
@@ -11,7 +11,8 @@ interface ErrorViewProps {
 }
 
 export function ErrorView({ message, onRetry, style }: ErrorViewProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   return (
     <View style={[styles.container, style]}>

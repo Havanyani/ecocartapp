@@ -2,12 +2,12 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useLanguage } from '@/hooks/useLanguage';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export function LanguageSelector() {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { currentLang, changeLanguage, supportedLanguages } = useLanguage();
 
   return (
@@ -30,7 +30,7 @@ export function LanguageSelector() {
                 <IconSymbol
                   name="text-direction-rtl"
                   size={16}
-                  color={theme.colors.text.primary}
+                  color={theme.colors.text}
                 />
               )}
             </View>

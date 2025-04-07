@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
@@ -49,7 +49,7 @@ export function AIAssistantFactory({
   floatingButtonPosition = 'bottomRight',
   ...chatProps
 }: AIAssistantFactoryProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Handle the floating button being pressed

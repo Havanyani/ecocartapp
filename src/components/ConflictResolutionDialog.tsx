@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
@@ -33,7 +33,7 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
   title = 'Resolve Conflicts',
   loading = false
 }: ConflictResolutionDialogProps<T>) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [resolvedData, setResolvedData] = useState<T>({ ...conflict.clientData });
   const [fieldChoices, setFieldChoices] = useState<Record<string, 'server' | 'client'>>({});
   
@@ -138,15 +138,15 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
           ]}
         >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.text.primary }]}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
               {title}
             </Text>
             <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={theme.colors.text.primary} />
+              <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
           
-          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
             Please choose which version of the data to keep
           </Text>
           
@@ -173,7 +173,7 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
           {conflictFields.length === 0 ? (
             <View style={styles.noConflicts}>
               <Ionicons name="checkmark-circle" size={48} color={theme.colors.success} />
-              <Text style={[styles.noConflictsText, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.noConflictsText, { color: theme.colors.text }]}>
                 No conflicts found. Data can be synchronized without changes.
               </Text>
             </View>
@@ -181,7 +181,7 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
             <ScrollView style={styles.fieldsContainer}>
               {conflictFields.map((field) => (
                 <View key={field} style={styles.fieldRow}>
-                  <Text style={[styles.fieldLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
                     {getFieldLabel(field)}
                   </Text>
                   
@@ -205,7 +205,7 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
                         </View>
                       </View>
                       <Text 
-                        style={[styles.valueText, { color: theme.colors.text.primary }]}
+                        style={[styles.valueText, { color: theme.colors.text }]}
                         numberOfLines={2}
                       >
                         {formatValue(conflict.serverData[field])}
@@ -231,7 +231,7 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
                         </View>
                       </View>
                       <Text 
-                        style={[styles.valueText, { color: theme.colors.text.primary }]}
+                        style={[styles.valueText, { color: theme.colors.text }]}
                         numberOfLines={2}
                       >
                         {formatValue(conflict.clientData[field])}
@@ -245,10 +245,10 @@ export function ConflictResolutionDialog<T extends Record<string, any>>({
           
           <View style={styles.footer}>
             <TouchableOpacity 
-              style={[styles.cancelButton, { borderColor: theme.colors.text.secondary }]} 
+              style={[styles.cancelButton, { borderColor: theme.colors.textSecondary }]} 
               onPress={onCancel}
             >
-              <Text style={[styles.buttonText, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.buttonText, { color: theme.colors.text }]}>
                 Cancel
               </Text>
             </TouchableOpacity>

@@ -5,7 +5,7 @@ import {
     ThemedView
 } from '@/components/ui';
 import { usePayment } from '@/hooks/usePayment';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function PaymentMethodsScreen() {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const {
     paymentMethods,
     creditBalance,
@@ -145,7 +145,7 @@ export function PaymentMethodsScreen() {
                   method.type === 'debit_card' ? 'card' : 'bank'
                 }
                 size={24}
-                color={theme.colors.text.primary}
+                color={theme.colors.text}
               />
               <View style={styles.paymentMethodDetails}>
                 <ThemedText style={styles.paymentMethodTitle}>

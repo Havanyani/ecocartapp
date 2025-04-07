@@ -309,4 +309,293 @@ Use this checklist for each production release:
 
 For deployment issues or questions, contact:
 - DevOps Team: devops@ecocart.com
-- Mobile Engineering Lead: mobile-lead@ecocart.com 
+- Mobile Engineering Lead: mobile-lead@ecocart.com
+
+# App Store Submission and Deployment Guide
+
+This document outlines the required steps to prepare EcoCart for submission to the App Store (iOS) and Google Play Store (Android).
+
+## 1. App Metadata Preparation
+
+All metadata files are stored in the `app-store-assets/metadata` directory:
+
+- **App Name**: "EcoCart - Recycling Rewards"
+- **Short Description**: A concise description already prepared in `short-description.txt`
+- **Long Description**: A detailed description already prepared in `long-description.txt`
+- **Keywords**: SEO-optimized keywords in `keywords.txt`
+- **What's New**: Release notes for updates in `whats-new.txt`
+
+## 2. Visual Assets Requirements
+
+### iOS Screenshots
+Screenshots should be captured for each supported device size:
+- iPhone 13 Pro / 14 Pro (1170 × 2532)
+- iPhone 13 Pro Max / 14 Pro Max (1284 × 2778)
+- iPhone 8 Plus (1242 × 2208)
+- iPad Pro (2048 × 2732)
+
+Store these in `app-store-assets/screenshots/ios` with descriptive filenames.
+
+### Android Screenshots
+Screenshots should be captured for these device sizes:
+- Phone (1080 × 1920)
+- 7-inch tablet (1080 × 1920)
+- 10-inch tablet (1920 × 1200)
+
+Store these in `app-store-assets/screenshots/android` with descriptive filenames.
+
+### App Icons
+Ensure all required app icons are generated:
+- iOS: The App Store requires a 1024×1024 pixel icon
+- Android: Google Play requires a 512×512 pixel icon
+
+Our icon source is located at `./assets/icon.png` and should be high resolution.
+
+## 3. Technical Requirements
+
+### iOS Specific Requirements
+- **Privacy Policy URL**: Required for App Store
+- **App Review Information**: Test account credentials if needed
+- **Age Rating**: Select appropriate content ratings
+- **App Store Category**: Environment & Recycling
+
+### Android Specific Requirements
+- **Content Rating**: Complete the content rating questionnaire
+- **Target Audience**: Age range for your app
+- **Privacy Policy URL**: Required for all apps
+
+## 4. Building App Bundles
+
+### iOS Build (App Store)
+```bash
+# Build for iOS distribution
+npx expo build:ios --type archive
+```
+
+### Android Build (Google Play)
+```bash
+# Build for Android distribution
+npx expo build:android --type app-bundle
+```
+
+## 5. Testing Before Submission
+
+- Run the app on multiple physical devices
+- Test core functionalities:
+  - Collection scheduling
+  - User registration/login
+  - Push notifications
+  - Location tracking
+  - Rewards system
+  - Community features
+- Check for accessibility compliance
+- Review analytics integration
+- Test offline functionality
+- Verify correct API endpoints (prod vs dev)
+
+## 6. App Store Submission Process
+
+### iOS Submission Steps
+1. Log in to App Store Connect
+2. Create a new app or new version
+3. Upload the build via Application Loader or Xcode
+4. Complete all metadata sections
+5. Submit for review
+
+### Google Play Submission Steps
+1. Log in to Google Play Console
+2. Create a new app or release
+3. Upload the AAB (Android App Bundle)
+4. Complete the store listing
+5. Set up pricing and distribution
+6. Submit for review
+
+## 7. Post-Submission
+
+- Monitor review status
+- Be prepared to respond to reviewer questions
+- Have a plan for addressing any issues flagged during review
+
+## 8. Next Steps in Release Pipeline
+
+- Set up automated build process with CI/CD
+- Implement phased rollout strategy
+- Plan for beta testing future releases
+- Document analytics tracking for new installs
+
+## Checklist Before Submission
+
+- [ ] App metadata complete and proofread
+- [ ] Screenshots captured for all required device sizes
+- [ ] App icons generated in all required sizes
+- [ ] App successfully builds for both platforms
+- [ ] All features tested on physical devices
+- [ ] Privacy policy updated and accessible
+- [ ] Analytics correctly implemented
+- [ ] Crash reporting in place
+- [ ] Accessibility features verified
+- [ ] App complies with store guidelines
+
+# EcoCart App Store Submission Guide
+
+This guide outlines the steps required to prepare and submit EcoCart to both the Apple App Store and Google Play Store.
+
+## App Metadata Preparation
+
+All metadata files are stored in the `app-store-assets/metadata` directory:
+
+- **App Name**: EcoCart
+- **Short Description** (80 characters max): An eco-friendly recycling and waste collection platform that rewards sustainable choices.
+- **Long Description**: Complete app description in `app-store-assets/metadata/description.md`
+- **Keywords**: recycling, sustainability, eco-friendly, waste management, rewards, green living
+- **Release Notes**: Update in `app-store-assets/metadata/release-notes.md` before each submission
+- **Privacy Policy**: Available at `app-store-assets/metadata/privacy-policy.md`
+
+## Visual Assets Requirements
+
+### Screenshots
+
+Take screenshots showcasing the core features of the app:
+
+#### iOS Screenshot Requirements
+- **iPhone 13/14 Pro** (1170 x 2532 pixels)
+- **iPhone 8 Plus/7 Plus** (1242 x 2208 pixels)
+- **iPad Pro** (2048 x 2732 pixels)
+
+Store screenshots in: `app-store-assets/screenshots/ios`
+
+#### Android Screenshot Requirements
+- **Phone** (1080 x 1920 pixels)
+- **7-inch Tablet** (1200 x 1920 pixels)
+- **10-inch Tablet** (1920 x 1200 pixels)
+
+Store screenshots in: `app-store-assets/screenshots/android`
+
+### App Icons
+
+Run the icon generator script to create all required icon sizes:
+
+```bash
+npm run generate-icons
+```
+
+This will create icons in:
+- `app-store-assets/images/ios` - iOS app icons
+- `app-store-assets/images/android` - Android app icons
+- `app-store-assets/images/app-store` - Store listing icons
+
+## Technical Requirements
+
+### iOS Requirements
+- **Bundle Identifier**: org.ecocart.app
+- **App Category**: Utilities, Lifestyle
+- **Minimum iOS Version**: 14.0
+- **Device Support**: iPhone, iPad
+- **App Review Information**: Provide test account credentials in `app-store-assets/metadata/test-accounts.md`
+- **Export Compliance**: No encryption used
+
+### Android Requirements
+- **Package Name**: org.ecocart.app
+- **Minimum Android Version**: API Level 26 (Android 8.0)
+- **Target SDK**: API Level 34 (Android 14)
+- **Content Rating**: Fill out the questionnaire in Google Play Console (likely E for Everyone)
+- **Privacy Policy URL**: Link to hosted privacy policy document
+- **Target Audience**: All ages, but primarily adults
+
+## Building App Bundles
+
+### iOS Build
+```bash
+npm run prebuild-ios
+npm run build-ios
+```
+
+### Android Build
+```bash
+npm run prebuild-android
+npm run build-android
+```
+
+Alternatively, use the combined script:
+```bash
+npm run app-store-build
+```
+
+## Testing Before Submission
+
+Before submission, test the production build on physical devices:
+
+1. **Functionality Testing**:
+   - Test all core features: registration, login, requesting pickups, order tracking
+   - Test all forms and inputs
+   - Verify push notifications work correctly
+   - Test payment functionality if applicable
+
+2. **Performance Testing**:
+   - Check app startup time
+   - Verify smooth animations
+   - Test with slow network conditions
+
+3. **Compatibility Testing**:
+   - Test on different iOS/Android versions
+   - Test on different device sizes
+
+4. **Accessibility**:
+   - Verify VoiceOver/TalkBack compatibility
+   - Check contrast ratios and text sizes
+
+5. **Backend Integration**:
+   - Verify all API endpoints connect correctly in production mode
+   - Check error handling for API failures
+
+## App Store Submission Process
+
+### App Store (iOS)
+
+1. Log in to [App Store Connect](https://appstoreconnect.apple.com/)
+2. Navigate to "My Apps" and select "EcoCart" (or create a new app)
+3. Complete all required metadata fields
+4. Upload screenshots for all required device sizes
+5. Upload the build (.ipa file) from EAS
+6. Complete the "App Review Information" section
+7. Set up pricing and availability
+8. Submit for review
+
+### Google Play Console (Android)
+
+1. Log in to [Google Play Console](https://play.google.com/console/)
+2. Navigate to "All apps" and select "EcoCart" (or create a new app)
+3. Complete the store listing with descriptions, screenshots, and feature graphic
+4. Set up content rating by completing the questionnaire
+5. Configure pricing and distribution
+6. Upload the build (.aab file) from EAS
+7. Review and submit app for review
+
+## Post-Submission
+
+After submitting your app:
+
+1. **Monitor Review Status**: Check App Store Connect or Google Play Console daily
+2. **Address Reviewer Questions**: Be ready to respond quickly to any questions
+3. **Prepare for Quick Updates**: Have a plan to address any issues that come up during review
+
+## Next Steps in Release Pipeline
+
+- **Set Up Automated Builds**: Configure CI/CD for automated builds
+- **Phased Rollout**: Consider using phased rollout for Android releases
+- **Beta Testing**: Set up TestFlight for iOS and Open Testing for Android for future updates
+- **Analytics Integration**: Ensure analytics are capturing key user journeys
+
+## Checklist Before Submission
+
+- [ ] App metadata complete and proofread
+- [ ] Screenshots prepared for all required devices
+- [ ] App icon generated in all required sizes
+- [ ] App passes internal QA testing
+- [ ] Privacy policy is complete and accessible
+- [ ] Test accounts prepared for reviewers
+- [ ] Version numbers and build numbers are correct
+- [ ] All app store guidelines reviewed for compliance
+- [ ] Backend services configured for production
+- [ ] Push notification certificates in place (if applicable)
+- [ ] Analytics and crash reporting configured correctly 

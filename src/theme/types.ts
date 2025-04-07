@@ -1,3 +1,8 @@
+/**
+ * Unified theme type definitions
+ * @module theme/types
+ */
+
 export interface Theme {
   dark: boolean;
   colors: ThemeColors;
@@ -11,10 +16,8 @@ export interface ThemeColors {
   accent: string;
   background: string;
   card: string;
-  text: {
-    primary: string;
-    secondary: string;
-  };
+  text: string;
+  textSecondary: string;
   border: string;
   success: string;
   warning: string;
@@ -33,24 +36,22 @@ export interface ThemeSpacing {
 }
 
 export interface ThemeTypography {
-  fontFamily: {
-    regular: string;
-    medium: string;
-    bold: string;
-  };
+  fontFamily: string;
   fontSize: {
-    xs: number;
-    sm: number;
-    md: number;
-    lg: number;
-    xl: number;
+    h1: number;
+    h2: number;
+    h3: number;
+    subtitle: number;
+    body: number;
+    caption: number;
   };
   lineHeight: {
-    xs: number;
-    sm: number;
-    md: number;
-    lg: number;
-    xl: number;
+    h1: number;
+    h2: number;
+    h3: number;
+    subtitle: number;
+    body: number;
+    caption: number;
   };
 }
 

@@ -98,4 +98,28 @@ export interface MaterialStats {
   recyclingRate: number;
   popularityRank: number;
   lastUpdated: Date;
+}
+
+export interface MaterialCategory {
+  id: string;
+  name: string;
+  icon: string;
+  category: 'recyclable' | 'non-recyclable' | 'hazardous';
+  creditPerKg: number;
+  recyclingGuidelines: string;
+}
+
+export interface MaterialWeight {
+  materialId: string;
+  weight: number;
+}
+
+export interface MaterialCollection {
+  id: string;
+  userId: string;
+  materials: MaterialWeight[];
+  date: string;
+  totalWeight: number;
+  totalCredits: number;
+  status: 'pending' | 'completed' | 'cancelled';
 } 

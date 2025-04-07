@@ -1,39 +1,32 @@
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/theme';
 import { SafeStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect } from 'react';
 import {
-  Animated,
-  Easing,
-  Platform,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-  useColorScheme,
+    Animated,
+    Easing,
+    Platform,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
+    ViewStyle,
+    useColorScheme,
 } from 'react-native';
 
 const THEME_STORAGE_KEY = '@ecocart:theme';
 
 // Define the proper theme context interface with all required properties
 interface ThemeContextType {
-  theme: AppTheme;
-  isDarkMode?: boolean;
-  setDarkMode?: (isDark: boolean) => void;
-  toggleTheme?: () => void;
-  themeAnimation?: Animated.Value;
-  useSystemTheme?: boolean;
-  setUseSystemTheme?: (useSystem: boolean) => void;
-}
-
-interface AppTheme {
-  colors: {
-    background: string;
-    text: string;
-    primary: string;
-    // Add other properties as needed
+  theme: {
+    colors: {
+      background: string;
+      text: string;
+      primary: string;
+      // Add other properties as needed
+    };
+    dark: boolean;
   };
 }
 
@@ -48,63 +41,26 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
   const rotationValue = React.useRef(new Animated.Value(0)).current;
   const scaleValue = React.useRef(new Animated.Value(1)).current;
 
-  // Get theme context with proper error handling for web
-  const themeContext = useTheme() as ThemeContextType;
-  const { theme, isDarkMode } = themeContext;
+  // Get theme from unified theme system
+  const themeContext = useTheme();
+  const theme = themeContext.theme;
+  const isDarkMode = theme.dark;
   
-  // Safely access functions that might be undefined in certain environments
-  const setDarkMode = (isDark: boolean) => {
-    try {
-      if (typeof themeContext.setDarkMode === 'function') {
-        themeContext.setDarkMode(isDark);
-      } else {
-        console.warn('setDarkMode is not available');
-      }
-    } catch (error) {
-      console.error('Error setting dark mode:', error);
-    }
-  };
-  
-  const toggleTheme = () => {
-    try {
-      if (typeof themeContext.toggleTheme === 'function') {
-        themeContext.toggleTheme();
-      } else {
-        // Fallback implementation if toggleTheme is not available
-        setDarkMode(!isDarkMode);
-      }
-    } catch (error) {
-      console.error('Error toggling theme:', error);
-    }
-  };
+  // ThemeSwitcher now only stores preferences, doesn't actually change the theme
+  // since theme is controlled at the application level
   
   // Load theme preferences on mount
   useEffect(() => {
     loadThemePreferences();
   }, []);
 
-  // Update theme when system theme changes if using system theme
-  useEffect(() => {
-    if (useSystemTheme && systemColorScheme) {
-      try {
-        setDarkMode(systemColorScheme === 'dark');
-      } catch (error) {
-        console.error('Error applying system theme:', error);
-      }
-    }
-  }, [systemColorScheme, useSystemTheme]);
-
   // Load saved theme preferences
   const loadThemePreferences = async () => {
     try {
       const savedPreferences = await SafeStorage.getItem(THEME_STORAGE_KEY);
       if (savedPreferences) {
-        const { isDark, useSystem } = JSON.parse(savedPreferences);
+        const { useSystem } = JSON.parse(savedPreferences);
         setUseSystemTheme(useSystem);
-        
-        if (!useSystem) {
-          setDarkMode(isDark);
-        }
       }
     } catch (error) {
       console.error('Failed to load theme preferences:', error);
@@ -123,7 +79,7 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
     }
   };
 
-  // Handle theme toggle
+  // Handle theme toggle animation
   const handleToggleTheme = () => {
     try {
       if (useSystemTheme) {
@@ -157,7 +113,9 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
         }),
       ]).start();
       
-      toggleTheme();
+      // Note: The actual theme change is now handled at the app level
+      // We're just logging a message here for demonstration
+      console.log('Theme toggle clicked - theme should change at app level');
     } catch (error) {
       console.error('Error in theme toggle:', error);
     }
@@ -167,13 +125,8 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
   const handleSystemThemeToggle = (value: boolean) => {
     try {
       setUseSystemTheme(value);
-      
-      if (value && systemColorScheme) {
-        // If switching to system theme, apply system preference
-        setDarkMode(systemColorScheme === 'dark');
-      }
-      
-      saveThemePreferences(isDarkMode ?? false, value);
+      saveThemePreferences(isDarkMode, value);
+      console.log('System theme toggle: ' + value);
     } catch (error) {
       console.error('Error in system theme toggle:', error);
     }
@@ -198,7 +151,7 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
           <Ionicons
             name={isDarkMode ? "sunny" : "moon"}
             size={24}
-            color={theme?.colors?.text || '#000000'}
+            color={theme.colors.text}
           />
         </Animated.View>
       </TouchableOpacity>
@@ -210,7 +163,7 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
     <View style={[styles.container, style]}>
       <View style={styles.themeRow}>
         <View style={styles.labelContainer}>
-          <Text style={[styles.label, { color: theme?.colors?.text || '#000000' }]}>
+          <Text style={[styles.label, { color: theme.colors.text }]}>
             Dark Mode
           </Text>
           <Animated.View 
@@ -222,7 +175,7 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
             <Ionicons
               name={isDarkMode ? "moon" : "sunny"}
               size={20}
-              color={theme?.colors?.text || '#000000'}
+              color={theme.colors.text}
             />
           </Animated.View>
         </View>
@@ -231,13 +184,13 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
           onValueChange={handleToggleTheme}
           trackColor={{ 
             false: Platform.OS === 'ios' ? '#e9e9eb' : '#d1d1d1', 
-            true: (theme?.colors?.primary || '#007AFF') + '80' 
+            true: (theme.colors.primary) + '80' 
           }}
           thumbColor={
             Platform.OS === 'ios' 
               ? '#FFFFFF'
               : isDarkMode 
-                ? theme?.colors?.primary || '#007AFF'
+                ? theme.colors.primary
                 : '#f4f3f4'
           }
           ios_backgroundColor="#e9e9eb"
@@ -245,7 +198,7 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
       </View>
 
       <View style={styles.themeRow}>
-        <Text style={[styles.label, { color: theme?.colors?.text || '#000000' }]}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>
           Use device theme
         </Text>
         <Switch
@@ -253,13 +206,13 @@ export function ThemeSwitcher({ style, compact = false }: ThemeSwitcherProps) {
           onValueChange={handleSystemThemeToggle}
           trackColor={{ 
             false: Platform.OS === 'ios' ? '#e9e9eb' : '#d1d1d1', 
-            true: (theme?.colors?.primary || '#007AFF') + '80' 
+            true: (theme.colors.primary) + '80' 
           }}
           thumbColor={
             Platform.OS === 'ios' 
               ? '#FFFFFF'
               : useSystemTheme 
-                ? theme?.colors?.primary || '#007AFF'
+                ? theme.colors.primary
                 : '#f4f3f4'
           }
           ios_backgroundColor="#e9e9eb"

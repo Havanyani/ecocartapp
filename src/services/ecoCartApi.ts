@@ -52,16 +52,54 @@ class EcoCartApi {
     this.baseURL = process.env.EXPO_PUBLIC_API_URL || 'https://api.ecocart.com/v1';
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
+    // Add request interceptor for retry logic
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        // Add custom retry count to the config
+        (config as any).retryCount = retryCount;
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
     // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      (response) => {
+        // Reset retry count on successful response
+        retryCount = 0;
+        return response;
+      },
+      async (error) => {
+        const config = error.config;
+        
+        // Only retry for network errors, timeouts, or server errors (5xx)
+        const shouldRetry = (
+          !error.response || 
+          error.code === 'ECONNABORTED' ||
+          (error.response && error.response.status >= 500)
+        );
+        
+        // Don't retry if we've hit the max retries
+        if (shouldRetry && (config.retryCount || 0) < MAX_RETRIES) {
+          retryCount = (config.retryCount || 0) + 1;
+          
+          // Exponential backoff
+          const delay = Math.pow(2, retryCount) * 1000;
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.axiosInstance(config);
+        }
+        
+        // Format the error response
         if (error.response) {
           // Server responded with error status
           const apiError: ApiError = {
@@ -74,7 +112,7 @@ class EcoCartApi {
           // Request made but no response received
           const apiError: ApiError = {
             code: 'NETWORK_ERROR',
-            message: 'Network error occurred',
+            message: 'Network error occurred. Please check your connection and try again.',
             details: error.request,
           };
           return Promise.reject(apiError);
@@ -82,7 +120,7 @@ class EcoCartApi {
           // Error in request setup
           const apiError: ApiError = {
             code: 'REQUEST_ERROR',
-            message: error.message,
+            message: error.message || 'An error occurred with your request',
           };
           return Promise.reject(apiError);
         }

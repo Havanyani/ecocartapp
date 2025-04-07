@@ -1,5 +1,5 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { TestCase } from '@/types/Performance';
 import { PerformanceScheduler } from '@/utils/PerformanceScheduler';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -34,7 +34,7 @@ interface ScheduleModalState {
 }
 
 export const TestScheduler: React.FC<TestSchedulerProps> = ({ testCases }) => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [schedules, setSchedules] = useState<any[]>([]);
   const [modal, setModal] = useState<ScheduleModalState>({
     visible: false,

@@ -1,7 +1,169 @@
 # Performance Optimizations
 
 ## Overview
-This document outlines the performance optimization strategies implemented in the EcoCart app.
+This document outlines the performance optimization strategies implemented in the EcoCart app to ensure a smooth, fast user experience across different devices and network conditions.
+
+## EcoCart Performance Optimizations
+
+This document outlines the performance optimization strategies implemented in the EcoCart app to ensure a smooth, fast user experience across different devices and network conditions.
+
+### Table of Contents
+
+1. [Startup Performance](#startup-performance)
+2. [Image Optimization](#image-optimization)
+3. [Code Splitting and Lazy Loading](#code-splitting-and-lazy-loading)
+4. [Network Optimization](#network-optimization)
+5. [UI Rendering Optimization](#ui-rendering-optimization)
+6. [Performance Monitoring](#performance-monitoring)
+7. [Testing Performance](#testing-performance)
+
+### Startup Performance
+
+The EcoCart app implements several strategies to optimize startup time and improve the perceived performance:
+
+#### App Initialization
+
+- **Early Performance Tracking**: The app sets a timestamp as early as possible in the app lifecycle (`global.appStartTimestamp`) to accurately measure startup time.
+- **Splash Screen Management**: Uses `SplashScreen.preventAutoHideAsync()` to keep the native splash screen visible while React Native initializes.
+- **Centralized Initialization**: The `AppInitializer` singleton manages all initialization tasks, including asset preloading and performance optimization setup.
+- **Asset Preloading**: Critical assets (fonts, images) are preloaded during initialization to prevent UI flickering during navigation.
+- **Progressive Loading**: The `AppLoadingScreen` component shows loading progress with animations to improve perceived performance.
+- **Adaptive Optimization**: The `detectOptimizationProfile` function determines the appropriate level of optimization based on device capabilities and network conditions.
+
+```typescript
+// Example: Detecting optimization profile
+export async function detectOptimizationProfile(): Promise<OptimizationProfile> {
+  // Check network status
+  const networkState = await getNetworkStateAsync();
+  
+  // Determine profile based on connection type and platform
+  if (networkState.type === 'cellular') {
+    return 'low';
+  }
+  
+  return 'high';
+}
+```
+
+### Image Optimization
+
+The app implements a comprehensive image optimization strategy through the `OptimizedImage` component:
+
+#### Features
+
+- **Automatic Sizing**: Images are resized based on container or screen dimensions to avoid loading unnecessarily large assets.
+- **Progressive Loading**: Implements blur-up technique with blurhash placeholders for a smoother loading experience.
+- **Format Optimization**: Converts images to WebP when supported for better compression.
+- **Caching Strategy**: Implements a sophisticated disk and memory caching system to avoid redundant downloads.
+- **Lazy Loading**: Images outside the viewport can be loaded with lower priority or deferred.
+- **Performance Tracking**: Image loading and rendering times are tracked for monitoring and optimization.
+
+```tsx
+// Example: Using the OptimizedImage component
+<OptimizedImage
+  source={{ uri: 'https://example.com/image.jpg' }}
+  contentFit="cover"
+  blurhash="LKO2:N%2Tw=w]~RBVZRi};RPxuwH"
+  lazyLoad={true}
+  priority="normal"
+/>
+```
+
+### Code Splitting and Lazy Loading
+
+The app implements code splitting and lazy loading to reduce the initial bundle size and improve startup performance:
+
+#### LazyScreen Component
+
+- **Dynamic Imports**: The `LazyScreen` component uses dynamic imports to load screens on demand.
+- **Custom Loading States**: Configurable loading component displays while the screen loads.
+- **Error Handling**: Robust error handling for failed imports.
+- **Performance Tracking**: Screen load and render times are measured for optimization.
+- **Preloading**: Frequently accessed screens can be preloaded to improve navigation performance.
+
+```typescript
+// Example: Creating a lazy-loaded screen
+const AnalyticsDashboard = createLazyScreen(
+  'AnalyticsDashboard',
+  () => import('@/screens/analytics/AnalyticsDashboard'),
+  { preload: false }
+);
+```
+
+#### BundleSplitter Utility
+
+- **Platform-Specific Code**: Platform-specific bundles reduce bundle size for both Android and iOS.
+- **Feature Flagging**: Components can be conditionally loaded based on feature flags.
+- **Component Registry**: The `BundleSplitter` class maintains a registry of lazy-loaded components for monitoring and preloading.
+
+### Network Optimization
+
+Network performance optimizations include:
+
+- **Offline Support**: The app can function without a network connection using cached data.
+- **Request Batching**: Similar requests are batched to reduce network overhead.
+- **Request Prioritization**: Critical requests receive higher priority than non-critical ones.
+- **Compression**: Network requests use compression when supported.
+- **Prefetching**: Data for likely user navigation paths is prefetched.
+- **Adaptive Concurrency**: The number of concurrent network requests is adjusted based on network conditions.
+
+### UI Rendering Optimization
+
+To ensure smooth UI rendering, the app implements:
+
+- **Virtualized Lists**: Long lists use `FlatList` with virtualization to optimize rendering.
+- **Memoization**: `React.memo`, `useMemo`, and `useCallback` are used to prevent unnecessary re-renders.
+- **Optimized Animations**: The `react-native-reanimated` library is used for performant animations that run on the UI thread.
+- **Debouncing and Throttling**: User interactions that trigger expensive operations are debounced or throttled.
+- **CSS Optimizations**: Shadows, blur, and other expensive CSS properties are used judiciously.
+
+### Performance Monitoring
+
+The app includes a built-in performance monitoring system:
+
+- **Metrics Collection**: The `PerformanceMonitor` class collects various metrics including render times, network latency, and memory usage.
+- **Performance Reporting**: Performance data can be exported for analysis.
+- **Automated Alerts**: Alerts are triggered when performance falls below acceptable thresholds.
+- **User Experience Metrics**: Core Web Vitals such as First Contentful Paint (FCP) and Time to Interactive (TTI) are tracked.
+
+### Testing Performance
+
+Performance testing is an integral part of the development process:
+
+- **Unit Tests**: Components like `OptimizedImage`, `LazyScreen`, and `AppInitializer` have dedicated unit tests to verify performance-related functionality.
+- **Integration Tests**: Verify that performance optimization systems work together correctly.
+- **End-to-End Tests**: Validate real-world performance with timing assertions like "app should initialize within 5 seconds."
+- **Performance Regression Testing**: Performance metrics are compared across builds to identify regressions.
+- **Device Testing**: Performance is tested across various device tiers to ensure a good experience on all supported devices.
+
+```typescript
+// Example: End-to-end test for app initialization performance
+it('should complete initialization within 5 seconds', async () => {
+  const startTime = Date.now();
+  
+  // Wait for loading screen to appear
+  await waitFor(element(by.text('EcoCart')))
+    .toBeVisible()
+    .withTimeout(2000);
+  
+  // Wait for loading to complete and home screen to appear
+  await waitFor(element(by.id('home-screen')))
+    .toBeVisible()
+    .withTimeout(5000);
+  
+  const endTime = Date.now();
+  const loadTime = endTime - startTime;
+  
+  // Assert that initialization completed within 5 seconds
+  if (loadTime >= 5000) {
+    throw new Error(`App initialization took too long: ${loadTime}ms (expected < 5000ms)`);
+  }
+});
+```
+
+---
+
+By applying these optimization strategies, the EcoCart app provides an optimal user experience across a wide range of devices and network conditions. The performance optimization system is designed to be adaptive, automatically adjusting to the capabilities of the user's device and network environment.
 
 ## Implemented Optimizations
 

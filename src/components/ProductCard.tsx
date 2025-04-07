@@ -1,7 +1,7 @@
 import { HapticButton } from '@/components/HapticButton';
 import { IconSymbol } from '@/components/IconSymbol';
 import { ThemedText } from '@/components/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import type { Product } from '@/types/product';
 import { Image, StyleSheet, View } from 'react-native';
 
@@ -11,7 +11,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
-  const theme = useTheme();
+  const themeFunc = useTheme();
+const theme = themeFunc();
 
   return (
     <HapticButton

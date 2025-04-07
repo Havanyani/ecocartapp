@@ -1,3 +1,4 @@
+import { TimeSlot } from '@/types/collections';
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -5,21 +6,15 @@ import { HapticTab } from './ui/HapticTab';
 import { ThemedText } from './ui/ThemedText';
 import { ThemedView } from './ui/ThemedView';
 
-interface TimeSlot {
-  id: string;
-  time: string;
-  available: boolean;
-}
-
 interface Props {
   onSchedule: (slot: TimeSlot, date: Date) => void;
   timeSlots?: TimeSlot[];
 }
 
 const DEFAULT_TIME_SLOTS: TimeSlot[] = [
-  { id: '1', time: '09:00-12:00', available: true },
-  { id: '2', time: '12:00-15:00', available: true },
-  { id: '3', time: '15:00-18:00', available: true }
+  { id: '1', startTime: '09:00', endTime: '12:00', isAvailable: true },
+  { id: '2', startTime: '12:00', endTime: '15:00', isAvailable: true },
+  { id: '3', startTime: '15:00', endTime: '18:00', isAvailable: true }
 ];
 
 export default function CollectionScheduler({ 
@@ -38,6 +33,10 @@ export default function CollectionScheduler({
     Haptics.selectionAsync();
   };
 
+  const formatTimeSlot = (slot: TimeSlot) => {
+    return `${slot.startTime}-${slot.endTime}`;
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText style={styles.title}>Schedule Collection</ThemedText>
@@ -51,15 +50,15 @@ export default function CollectionScheduler({
               styles.timeSlot,
               selectedSlot?.id === slot.id && styles.selectedTimeSlot
             ]}
-            disabled={!slot.available}
-            accessibilityLabel={`Select time slot ${slot.time}`}
+            disabled={!slot.isAvailable}
+            accessibilityLabel={`Select time slot ${formatTimeSlot(slot)}`}
             accessibilityRole="button"
             onPress={() => {
               setSelectedSlot(slot);
               setError('');
             }}
           >
-            <ThemedText style={styles.timeSlotText}>{slot.time}</ThemedText>
+            <ThemedText style={styles.timeSlotText}>{formatTimeSlot(slot)}</ThemedText>
           </HapticTab>
         ))}
       </View>

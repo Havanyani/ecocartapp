@@ -45,6 +45,26 @@ Component for displaying temporary notifications and feedback messages.
 
 [See detailed documentation](./Toast.README.md)
 
+### OfflineStatusIndicator
+Component that displays the current network status, pending synchronization operations, and provides UI controls for manual synchronization.
+
+```tsx
+<OfflineStatusIndicator 
+  position="top"
+  showSyncButton={true}
+  showPendingCount={true}
+/>
+```
+
+Key features:
+- Visual indication of online/offline state
+- Shows pending operations count
+- Provides manual sync button
+- Animates when synchronizing
+- Expandable for additional details
+
+[See detailed documentation in the Offline Capabilities Guide](../../docs/offline-capabilities-guide.md#ui-components)
+
 ## Theme Integration
 All UI components use the `useTheme` hook to access the current theme configuration. Theme changes are automatically reflected in all components without requiring manual prop changes.
 

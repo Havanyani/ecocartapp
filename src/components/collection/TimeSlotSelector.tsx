@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
-import { TimeSlot } from '@/types/Collection';
+import { useTheme } from '@/theme';
+import { TimeSlot } from '@/types/collections';
 import { format } from 'date-fns';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -21,7 +21,7 @@ export function TimeSlotSelector({
   selectedSlot,
   onSelectSlot,
 }: TimeSlotSelectorProps) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const handleDateSelection = (newDate: Date) => {
     onDateChange(newDate);
@@ -31,7 +31,7 @@ export function TimeSlotSelector({
     <ThemedView style={styles.container}>
       <View style={styles.dateContainer}>
         <ThemedText style={styles.dateLabel}>Collection Date</ThemedText>
-        <ThemedText style={styles.dateValue}>
+        <ThemedText style={[styles.dateValue, { color: theme.theme.colors.primary }]}>
           {format(date, 'EEEE, MMMM d, yyyy')}
         </ThemedText>
       </View>
@@ -39,8 +39,8 @@ export function TimeSlotSelector({
       <ThemedText style={styles.title}>Available Time Slots</ThemedText>
       
       {availableSlots.length === 0 ? (
-        <ThemedView style={styles.emptySlots}>
-          <ThemedText style={styles.emptyText}>
+        <ThemedView style={[styles.emptySlots, { backgroundColor: theme.theme.colors.card }]}>
+          <ThemedText style={[styles.emptyText, { color: theme.theme.colors.textSecondary }]}>
             No available time slots for this date. Please try another day.
           </ThemedText>
         </ThemedView>
@@ -54,14 +54,14 @@ export function TimeSlotSelector({
             <TouchableOpacity
               key={slot.id}
               onPress={() => onSelectSlot(slot)}
-              disabled={!slot.available}
+              disabled={!slot.isAvailable}
               style={[
                 styles.slot,
                 {
                   backgroundColor: selectedSlot?.id === slot.id
-                    ? '#2e7d32'
-                    : slot.available
-                    ? '#f5f5f5'
+                    ? theme.theme.colors.primary
+                    : slot.isAvailable
+                    ? theme.theme.colors.card
                     : '#e0e0e0',
                 },
               ]}
@@ -71,8 +71,8 @@ export function TimeSlotSelector({
                   styles.time,
                   {
                     color: selectedSlot?.id === slot.id
-                      ? 'white'
-                      : '#333333',
+                      ? theme.theme.colors.white
+                      : theme.theme.colors.text,
                   },
                 ]}
               >
@@ -83,8 +83,8 @@ export function TimeSlotSelector({
                   styles.timeSeparator,
                   {
                     color: selectedSlot?.id === slot.id
-                      ? 'white'
-                      : '#757575',
+                      ? theme.theme.colors.white
+                      : theme.theme.colors.textSecondary,
                   },
                 ]}
               >
@@ -95,15 +95,15 @@ export function TimeSlotSelector({
                   styles.time,
                   {
                     color: selectedSlot?.id === slot.id
-                      ? 'white'
-                      : '#333333',
+                      ? theme.theme.colors.white
+                      : theme.theme.colors.text,
                   },
                 ]}
               >
                 {slot.endTime}
               </ThemedText>
-              {!slot.available && (
-                <ThemedText style={styles.unavailable}>
+              {!slot.isAvailable && (
+                <ThemedText style={[styles.unavailable, { color: theme.theme.colors.error }]}>
                   Unavailable
                 </ThemedText>
               )}
@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
   dateValue: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#2e7d32',
   },
   title: {
     fontSize: 16,
@@ -165,17 +164,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     marginTop: 4,
-    color: '#F44336',
   },
   emptySlots: {
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#757575',
   }
 }); 

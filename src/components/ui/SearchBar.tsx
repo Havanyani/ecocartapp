@@ -1,5 +1,5 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 
@@ -15,8 +15,8 @@ export function SearchBar({ style, ...props }: SearchBarProps) {
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.text.secondary,
+          backgroundColor: theme.colors.background,
+          borderColor: theme.colors.textSecondary,
         },
         style,
       ]}
@@ -24,7 +24,7 @@ export function SearchBar({ style, ...props }: SearchBarProps) {
       <IconSymbol
         name="search"
         size={20}
-        color={theme.colors.text.secondary}
+        color={theme.colors.textSecondary}
         style={styles.icon}
       />
       <TextInput
@@ -32,16 +32,16 @@ export function SearchBar({ style, ...props }: SearchBarProps) {
         style={[
           styles.input,
           {
-            color: theme.colors.text.primary,
+            color: theme.colors.text,
           },
         ]}
-        placeholderTextColor={theme.colors.text.secondary}
+        placeholderTextColor={theme.colors.textSecondary}
       />
       {props.value ? (
         <IconSymbol
           name="close"
           size={20}
-          color={theme.colors.text.secondary}
+          color={theme.colors.textSecondary}
           style={styles.icon}
           onPress={() => props.onChangeText?.('')}
         />

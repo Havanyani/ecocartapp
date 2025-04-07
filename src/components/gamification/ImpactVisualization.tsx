@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { EnvironmentalImpact } from '@/types/gamification';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -23,7 +23,7 @@ export function ImpactVisualization({
   impact, 
   showComparisons = true 
 }: ImpactVisualizationProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   // Get weight percentage for each material type
   const getWeightPercentage = (materialWeight: number): number => {
@@ -63,7 +63,7 @@ export function ImpactVisualization({
       <View style={[styles.totalImpactCard, { backgroundColor: theme.colors.success + '15' }]}>
         <View style={styles.totalImpactHeader}>
           <Ionicons name="earth" size={24} color={theme.colors.success} />
-          <Text style={[styles.totalImpactTitle, { color: theme.colors.text.primary }]}>
+          <Text style={[styles.totalImpactTitle, { color: theme.colors.text }]}>
             Your Environmental Impact
           </Text>
         </View>
@@ -73,7 +73,7 @@ export function ImpactVisualization({
             <Text style={[styles.impactValue, { color: theme.colors.success }]}>
               {formatWeight(impact.totalWeight)}
             </Text>
-            <Text style={[styles.impactLabel, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.impactLabel, { color: theme.colors.textSecondary }]}>
               Total Recycled
             </Text>
           </View>
@@ -82,7 +82,7 @@ export function ImpactVisualization({
             <Text style={[styles.impactValue, { color: theme.colors.success }]}>
               {impact.co2Saved.toFixed(1)} kg
             </Text>
-            <Text style={[styles.impactLabel, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.impactLabel, { color: theme.colors.textSecondary }]}>
               CO₂ Saved
             </Text>
           </View>
@@ -91,7 +91,7 @@ export function ImpactVisualization({
             <Text style={[styles.impactValue, { color: theme.colors.success }]}>
               {impact.treesEquivalent.toFixed(1)}
             </Text>
-            <Text style={[styles.impactLabel, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.impactLabel, { color: theme.colors.textSecondary }]}>
               Trees Equivalent
             </Text>
           </View>
@@ -100,7 +100,7 @@ export function ImpactVisualization({
       
       {/* Material breakdown */}
       <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Material Breakdown
         </Text>
         
@@ -115,11 +115,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#E91E63" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Plastic
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.plasticWeight)}
                 </Text>
               </View>
@@ -151,11 +151,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#FF9800" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Paper & Cardboard
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.paperWeight)}
                 </Text>
               </View>
@@ -187,11 +187,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#2196F3" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Glass
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.glassWeight)}
                 </Text>
               </View>
@@ -223,11 +223,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#607D8B" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Metal
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.metalWeight)}
                 </Text>
               </View>
@@ -259,11 +259,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#673AB7" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Electronics
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.electronicsWeight)}
                 </Text>
               </View>
@@ -295,11 +295,11 @@ export function ImpactVisualization({
                     size={16} 
                     color="#9E9E9E" 
                   />
-                  <Text style={[styles.materialLabel, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.materialLabel, { color: theme.colors.text }]}>
                     Other
                   </Text>
                 </View>
-                <Text style={[styles.materialWeight, { color: theme.colors.text.secondary }]}>
+                <Text style={[styles.materialWeight, { color: theme.colors.textSecondary }]}>
                   {formatWeight(impact.otherWeight)}
                 </Text>
               </View>
@@ -327,7 +327,7 @@ export function ImpactVisualization({
       {/* Impact comparisons */}
       {showComparisons && (
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             What Your Impact Means
           </Text>
           
@@ -351,7 +351,7 @@ export function ImpactVisualization({
               <Text style={[styles.comparisonValue, { color: theme.colors.success }]}>
                 {impact.treesEquivalent.toFixed(1)}
               </Text>
-              <Text style={[styles.comparisonLabel, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.comparisonLabel, { color: theme.colors.text }]}>
                 Trees Equivalent
               </Text>
             </View>
@@ -371,7 +371,7 @@ export function ImpactVisualization({
               <Text style={[styles.comparisonValue, { color: theme.colors.primary }]}>
                 {impact.comparisons.carNotDriven.toFixed(0)} km
               </Text>
-              <Text style={[styles.comparisonLabel, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.comparisonLabel, { color: theme.colors.text }]}>
                 Car Distance Not Driven
               </Text>
             </View>
@@ -391,7 +391,7 @@ export function ImpactVisualization({
               <Text style={[styles.comparisonValue, { color: '#E91E63' }]}>
                 {impact.comparisons.plasticBottlesSaved.toFixed(0)}
               </Text>
-              <Text style={[styles.comparisonLabel, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.comparisonLabel, { color: theme.colors.text }]}>
                 Plastic Bottles
               </Text>
             </View>
@@ -411,7 +411,7 @@ export function ImpactVisualization({
               <Text style={[styles.comparisonValue, { color: '#2196F3' }]}>
                 {impact.comparisons.showersMissed.toFixed(0)}
               </Text>
-              <Text style={[styles.comparisonLabel, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.comparisonLabel, { color: theme.colors.text }]}>
                 Showers' Worth of Water
               </Text>
             </View>
@@ -431,7 +431,7 @@ export function ImpactVisualization({
               <Text style={[styles.comparisonValue, { color: '#FF9800' }]}>
                 {impact.comparisons.bulbsForYear.toFixed(0)}
               </Text>
-              <Text style={[styles.comparisonLabel, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.comparisonLabel, { color: theme.colors.text }]}>
                 Lightbulbs Powered for a Year
               </Text>
             </View>

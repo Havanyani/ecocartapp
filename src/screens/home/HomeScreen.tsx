@@ -4,12 +4,14 @@
  * Main dashboard screen for authenticated users.
  */
 
+import NotificationIcon from '@/components/ui/NotificationIcon';
+import { useAuth } from '@/contexts/AuthContext';
+import useNetworkStatus from '@/hooks/useNetworkStatus';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
-import useNetworkStatus from '@/hooks/useNetworkStatus';
 
 interface HomeScreenProps {
   navigation: any;
@@ -18,6 +20,7 @@ interface HomeScreenProps {
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { user } = useAuth();
   const { isOnline } = useNetworkStatus();
+  const router = useRouter();
   
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -28,12 +31,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <Text style={styles.welcomeText}>Welcome{user?.name ? `, ${user.name}` : ''}!</Text>
             <Text style={styles.subtitleText}>Ready to make an impact today?</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Ionicons name="settings-outline" size={24} color="#2C3E50" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <NotificationIcon />
+            <TouchableOpacity 
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Ionicons name="settings-outline" size={24} color="#2C3E50" />
+            </TouchableOpacity>
+          </View>
         </View>
         
         {/* Offline Banner */}
@@ -49,6 +55,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Eco Stats */}
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>Your Eco Impact</Text>
+          <TouchableOpacity 
+            style={styles.viewImpactButton}
+            onPress={() => navigation.navigate('EnvironmentalImpact')}
+          >
+            <Text style={styles.viewImpactText}>View Detailed Impact</Text>
+            <Ionicons name="chevron-forward" size={16} color="#34C759" />
+          </TouchableOpacity>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Ionicons name="trash-outline" size={28} color="#34C759" />
@@ -92,18 +105,54 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               <Text style={styles.actionText}>Schedule Pickup</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FFF8E6' }]}>
-                <Ionicons name="compass-outline" size={24} color="#FF9500" />
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('EnvironmentalImpact')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="analytics-outline" size={24} color="#2E7D32" />
               </View>
-              <Text style={styles.actionText}>Find Drop-off</Text>
+              <Text style={styles.actionText}>Impact Dashboard</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('BarcodeScanner')}
+            >
               <View style={[styles.actionIcon, { backgroundColor: '#FFEFF0' }]}>
                 <Ionicons name="barcode-outline" size={24} color="#FF3B30" />
               </View>
               <Text style={styles.actionText}>Scan Item</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Challenges')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#F4EDFF' }]}>
+                <Ionicons name="people-outline" size={24} color="#5E35B1" />
+              </View>
+              <Text style={styles.actionText}>Community Challenges</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/components')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#E0F7FA' }]}>
+                <Ionicons name="construct-outline" size={24} color="#00BCD4" />
+              </View>
+              <Text style={styles.actionText}>UI Components</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Conversations')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="chatbubbles-outline" size={24} color="#FF9800" />
+              </View>
+              <Text style={styles.actionText}>Messages</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -182,13 +231,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93'
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    justifyContent: 'center',
-    alignItems: 'center'
+    marginLeft: 16,
+    padding: 4,
   },
   offlineBanner: {
     flexDirection: 'row',
@@ -206,6 +255,18 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     marginBottom: 24
+  },
+  viewImpactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+  },
+  viewImpactText: {
+    fontSize: 14,
+    color: '#34C759',
+    marginRight: 4,
   },
   sectionTitle: {
     fontSize: 18,

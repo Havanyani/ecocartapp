@@ -1,149 +1,155 @@
-import { useCallback, useState } from 'react';
-import { api } from '@/services/api';
-import { User } from '@/types/User';
+import { AuthService, LoginRequest, SignupRequest, User } from '@/services/AuthService';
+import { useCallback, useEffect, useState } from 'react';
 
-interface AuthError {
-  message: string;
-  code: string;
-}
-
-interface AuthState {
+export interface AuthState {
   user: User | null;
   isLoading: boolean;
-  error: AuthError | null;
+  isAuthenticated: boolean;
+  error: string | null;
 }
 
-export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: false,
-    error: null,
-  });
+export interface UseAuthReturn extends AuthState {
+  login: (credentials: LoginRequest) => Promise<boolean>;
+  signup: (data: SignupRequest) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshAuthToken: () => Promise<boolean>;
+  clearError: () => void;
+}
 
-  const login = useCallback(async (email: string, password: string) => {
+/**
+ * Hook for authentication functionality
+ */
+export function useAuth(): UseAuthReturn {
+  const auth = AuthService.getInstance();
+  
+  // State
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialize auth state
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        await auth.initialize();
+        
+        const isAuth = auth.isAuthenticated();
+        setIsAuthenticated(isAuth);
+        
+        if (isAuth) {
+          const currentUser = auth.getCurrentUser();
+          setUser(currentUser);
+        }
+      } catch (err) {
+        console.error('Error initializing auth:', err);
+        setError('Failed to initialize authentication');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeAuth();
+  }, []);
+
+  /**
+   * Login with email and password
+   */
+  const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const response = await api.login({ email, password });
-      const { user, token } = response;
-      
-      // Store token in secure storage
-      await api.setAuthToken(token);
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        isLoading: false,
-      }));
+      const user = await auth.login(credentials);
+      setUser(user);
+      setIsAuthenticated(true);
+      return true;
     } catch (err) {
-      const error = err as Error;
-      setState(prev => ({
-        ...prev,
-        error: {
-          message: error.message,
-          code: 'AUTH_LOGIN_ERROR',
-        },
-        isLoading: false,
-      }));
-      throw err;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to login';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  /**
+   * Create a new account
+   */
+  const signup = useCallback(async (data: SignupRequest): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      await api.logout();
-      await api.removeAuthToken();
-      
-      setState(prev => ({
-        ...prev,
-        user: null,
-        isLoading: false,
-      }));
+      const user = await auth.signup(data);
+      setUser(user);
+      setIsAuthenticated(true);
+      return true;
     } catch (err) {
-      const error = err as Error;
-      setState(prev => ({
-        ...prev,
-        error: {
-          message: error.message,
-          code: 'AUTH_LOGOUT_ERROR',
-        },
-        isLoading: false,
-      }));
-      throw err;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const register = useCallback(async (data: {
-    email: string;
-    password: string;
-    name: string;
-  }) => {
+  /**
+   * Logout the current user
+   */
+  const logout = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const response = await api.register(data);
-      const { user, token } = response;
-      
-      // Store token in secure storage
-      await api.setAuthToken(token);
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        isLoading: false,
-      }));
+      await auth.logout();
+      setUser(null);
+      setIsAuthenticated(false);
     } catch (err) {
-      const error = err as Error;
-      setState(prev => ({
-        ...prev,
-        error: {
-          message: error.message,
-          code: 'AUTH_REGISTER_ERROR',
-        },
-        isLoading: false,
-      }));
-      throw err;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to logout';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const resetPassword = useCallback(async (email: string) => {
+  /**
+   * Refresh the authentication token
+   */
+  const refreshAuthToken = useCallback(async (): Promise<boolean> => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      const token = await auth.refreshAuthToken();
       
-      await api.resetPassword(email);
+      // Re-fetch user data if token was refreshed
+      if (token) {
+        const currentUser = auth.getCurrentUser();
+        setUser(currentUser);
+        return true;
+      }
       
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-      }));
+      return false;
     } catch (err) {
-      const error = err as Error;
-      setState(prev => ({
-        ...prev,
-        error: {
-          message: error.message,
-          code: 'AUTH_RESET_PASSWORD_ERROR',
-        },
-        isLoading: false,
-      }));
-      throw err;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh token';
+      setError(errorMessage);
+      return false;
     }
   }, []);
 
+  /**
+   * Clear any error message
+   */
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setError(null);
   }, []);
 
   return {
-    user: state.user,
-    isLoading: state.isLoading,
-    error: state.error,
+    user,
+    isLoading,
+    isAuthenticated,
+    error,
     login,
+    signup,
     logout,
-    register,
-    resetPassword,
+    refreshAuthToken,
     clearError,
   };
 } 

@@ -1,6 +1,6 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Product } from '@/types/GroceryStore';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -11,7 +11,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress }: ProductCardProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
 
   const handlePress = () => {
     if (onPress) {

@@ -5,8 +5,8 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { isFeatureEnabled } from '@/config/featureFlags';
-import { useTheme } from '@/hooks/useTheme';
 import { WasteCollectionScreenProps } from '@/navigation/types';
+import { useTheme } from '@/theme';
 import { t } from '@/utils/i18n';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -40,7 +40,7 @@ export function WasteCollectionScreen({ navigation }: WasteCollectionScreenProps
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <IconSymbol name="recycle" size={48} color={theme.colors.primary} />
+          <IconSymbol name="recycle" size={48} color={theme.theme.colors.primary} />
           <ThemedText style={styles.title}>{t('collection.title')}</ThemedText>
         </View>
 

@@ -1,5 +1,5 @@
 import { useDeliveryPersonnel } from '@/hooks/useDeliveryPersonnel';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import deliveryPersonnelReducer from '@/store/slices/deliveryPersonnelSlice';
 import { DeliveryPersonnel, DeliveryStatus } from '@/types/DeliveryPersonnel';
 import { configureStore } from '@reduxjs/toolkit';

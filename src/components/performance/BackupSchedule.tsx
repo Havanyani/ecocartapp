@@ -1,12 +1,12 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { BackupSchedule as BackupScheduleType, backupScheduler } from '@/utils/BackupScheduler';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 export const BackupSchedule: React.FC = () => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const [schedule, setSchedule] = useState<BackupScheduleType>({
     enabled: false,
     frequency: 'daily',

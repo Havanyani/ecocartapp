@@ -1,1 +1,0 @@
-source={require('@/assets/images/eco-logo.png')} 

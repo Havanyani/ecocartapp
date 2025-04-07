@@ -1,5 +1,5 @@
 import { useOfflineState } from '@/hooks/useOfflineState';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { OfflineStatus } from '../OfflineStatus';

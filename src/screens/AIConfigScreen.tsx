@@ -1,5 +1,5 @@
-import { useTheme } from '@/hooks/useTheme';
 import { useAIAssistant } from '@/providers/AIAssistantProvider';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -21,7 +21,7 @@ interface AIConfigScreenProps {
 }
 
 export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { isAIConfigured, aiServiceName, configureAI } = useAIAssistant();
   
   const [apiKey, setApiKey] = useState('');
@@ -70,16 +70,16 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
   
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           accessibilityLabel="Go back"
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           AI Assistant Configuration
         </Text>
       </View>
@@ -90,17 +90,17 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
       >
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.statusContainer}>
-            <Text style={[styles.statusLabel, { color: theme.colors.text.primary }]}>
+            <Text style={[styles.statusLabel, { color: theme.colors.text }]}>
               AI Service Status:
             </Text>
             <View style={styles.statusIndicatorContainer}>
               <View
                 style={[
                   styles.statusIndicator,
-                  { backgroundColor: isAIConfigured ? '#4CAF50' : '#F44336' }
+                  { backgroundColor: isAIConfigured ? theme.colors.success : theme.colors.error }
                 ]}
               />
-              <Text style={[styles.statusText, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.statusText, { color: theme.colors.text }]}>
                 {isAIConfigured 
                   ? `Connected (${aiServiceName || 'Unknown Service'})` 
                   : 'Not Configured'}
@@ -109,15 +109,15 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
           </View>
           
           <View style={styles.formSection}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               OpenAI Configuration
             </Text>
-            <Text style={[styles.description, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
               To enable AI functionality, you need to provide your OpenAI API key. 
               Visit https://platform.openai.com/api-keys to get your API key.
             </Text>
             
-            <Text style={[styles.inputLabel, { color: theme.colors.text.primary }]}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
               API Key
             </Text>
             <View style={styles.apiKeyContainer}>
@@ -125,12 +125,12 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
                 value={apiKey}
                 onChangeText={setApiKey}
                 placeholder="Enter your OpenAI API key"
-                placeholderTextColor={theme.colors.text.secondary}
+                placeholderTextColor={theme.colors.textSecondary}
                 style={[
                   styles.input,
                   { 
-                    color: theme.colors.text.primary,
-                    backgroundColor: theme.isDark ? '#333333' : '#F1F1F1' 
+                    color: theme.colors.text,
+                    backgroundColor: theme.dark ? '#333333' : '#F1F1F1' 
                   }
                 ]}
                 secureTextEntry={hideApiKey}
@@ -147,7 +147,7 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
                 <Ionicons 
                   name={hideApiKey ? "eye" : "eye-off"} 
                   size={24} 
-                  color={theme.colors.text.secondary}
+                  color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -155,7 +155,7 @@ export default function AIConfigScreen({ navigation }: AIConfigScreenProps) {
           
           <View style={styles.noteContainer}>
             <Ionicons name="information-circle-outline" size={20} color={theme.colors.secondary} />
-            <Text style={[styles.noteText, { color: theme.colors.text.secondary }]}>
+            <Text style={[styles.noteText, { color: theme.colors.textSecondary }]}>
               Your API key is stored securely on your device and is never shared with our servers.
               Usage charges from OpenAI apply based on your account.
             </Text>

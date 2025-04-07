@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { AnimationMonitor } from '@/utils/AnimationPerformanceMonitor';
 import { SafeStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,7 +72,7 @@ export function FeatureTour({
   buttonTextColor,
   accentColor,
 }: FeatureTourProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   
   // Use provided colors or default to theme
   const highlightColor = accentColor || theme.colors.primary;

@@ -2,7 +2,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
@@ -11,7 +11,7 @@ interface NotificationPreferencesProps {
 }
 
 export function NotificationPreferences({ personnelId }: NotificationPreferencesProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { preferences, togglePreference } = useDeliveryNotifications(personnelId);
 
   const preferenceItems = [

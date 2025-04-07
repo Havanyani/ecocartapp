@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoCart Web Test</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f0f8ff;
+      padding: 20px;
+    }
+    .card {
+      text-align: center;
+      padding: 30px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .title {
+      color: #2e7d32;
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+    .subtitle {
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    .status {
+      padding: 8px 16px;
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      display: inline-block;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .counter {
+      margin: 20px 0;
+      font-size: 18px;
+    }
+    .button {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+      margin: 5px;
+    }
+    .button:hover {
+      background-color: #1b5e20;
+    }
+    .nav-bar {
+      display: flex;
+      justify-content: center;
+      background-color: #2e7d32;
+      padding: 15px;
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .nav-item {
+      color: white;
+      margin: 0 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .nav-item:hover {
+      text-decoration: underline;
+    }
+    .section {
+      display: none;
+      width: 100%;
+    }
+    .section.active {
+      display: block;
+    }
+    .eco-impact {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+    .impact-item {
+      text-align: center;
+      padding: 10px;
+    }
+    .impact-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2e7d32;
+    }
+    .impact-label {
+      font-size: 14px;
+      color: #555;
+    }
+    .plastic-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+      width: 100%;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">EcoCart Web</h1>
+    <p class="subtitle">Web Platform Test</p>
+    <div class="status">Web Test Working</div>
+    
+    <div class="nav-bar">
+      <div class="nav-item" data-section="home">Home</div>
+      <div class="nav-item" data-section="collection">Collection</div>
+      <div class="nav-item" data-section="impact">Impact</div>
+      <div class="nav-item" data-section="profile">Profile</div>
+    </div>
+    
+    <div id="home" class="section active card">
+      <h2>Welcome to EcoCart</h2>
+      <p>Integrating grocery delivery with plastic waste collection</p>
+      <div class="counter">Collection Points: <span id="counterValue">0</span></div>
+      <button class="button" id="incrementButton">Add Collection</button>
+    </div>
+    
+    <div id="collection" class="section card">
+      <h2>Schedule Collection</h2>
+      <div class="plastic-form">
+        <div class="form-group">
+          <label for="plastic-type">Plastic Type</label>
+          <select id="plastic-type">
+            <option value="PET">PET (Bottles)</option>
+            <option value="HDPE">HDPE (Milk jugs, detergent bottles)</option>
+            <option value="PVC">PVC</option>
+            <option value="LDPE">LDPE (Plastic bags)</option>
+            <option value="PP">PP (Bottle caps, straws)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="weight">Estimated Weight (kg)</label>
+          <input type="number" id="weight" min="0.1" step="0.1" value="1.0">
+        </div>
+        <div class="form-group">
+          <label for="collection-date">Collection Date</label>
+          <input type="date" id="collection-date">
+        </div>
+        <button class="button" id="scheduleButton">Schedule Pickup</button>
+      </div>
+    </div>
+    
+    <div id="impact" class="section card">
+      <h2>Your Environmental Impact</h2>
+      <div class="eco-impact">
+        <div class="impact-item">
+          <div class="impact-value">12.5</div>
+          <div class="impact-label">kg Plastic Collected</div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-value">3.2</div>
+          <div class="impact-label">kg CO₂ Saved</div>
+        </div>
+        <div class="impact-item">
+          <div class="impact-value">250</div>
+          <div class="impact-label">EcoPoints Earned</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="profile" class="section card">
+      <h2>User Profile</h2>
+      <p>Name: Demo User</p>
+      <p>Email: demo@example.com</p>
+      <p>Collection Address: 123 Green Street</p>
+      <p>EcoPoints Balance: 250</p>
+      <button class="button" id="logoutButton">Logout</button>
+    </div>
+    
+    <div class="card">
+      <h3>Launch Options</h3>
+      <button class="button" id="launchFullWebBtn">Launch Full Web Version</button>
+      <button class="button" id="launchMobileBtn">Launch Mobile Web Version</button>
+    </div>
+  </div>
+
+  <script>
+    // Vanilla JavaScript implementation
+    document.addEventListener('DOMContentLoaded', function() {
+      // Counter functionality
+      let counter = 0;
+      const counterElement = document.getElementById('counterValue');
+      const incrementButton = document.getElementById('incrementButton');
+      
+      incrementButton.addEventListener('click', function() {
+        counter++;
+        counterElement.textContent = counter;
+        // Show success message
+        alert('Collection point added successfully!');
+      });
+      
+      // Tab navigation
+      const navItems = document.querySelectorAll('.nav-item');
+      const sections = document.querySelectorAll('.section');
+      
+      navItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const sectionId = this.getAttribute('data-section');
+          
+          // Hide all sections
+          sections.forEach(section => {
+            section.classList.remove('active');
+          });
+          
+          // Show selected section
+          document.getElementById(sectionId).classList.add('active');
+        });
+      });
+      
+      // Schedule button
+      const scheduleButton = document.getElementById('scheduleButton');
+      scheduleButton.addEventListener('click', function() {
+        const plasticType = document.getElementById('plastic-type').value;
+        const weight = document.getElementById('weight').value;
+        const date = document.getElementById('collection-date').value;
+        
+        if (!date) {
+          alert('Please select a collection date');
+          return;
+        }
+        
+        alert(`Collection scheduled for ${date}:\n${weight}kg of ${plasticType}`);
+      });
+      
+      // Logout button
+      const logoutButton = document.getElementById('logoutButton');
+      logoutButton.addEventListener('click', function() {
+        alert('You have been logged out');
+      });
+      
+      // Set default date to tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateInput = document.getElementById('collection-date');
+      dateInput.valueAsDate = tomorrow;
+      
+      // Launch buttons
+      document.getElementById('launchFullWebBtn').addEventListener('click', function() {
+        window.location.href = './web-version/index.html';
+      });
+      
+      document.getElementById('launchMobileBtn').addEventListener('click', function() {
+        // This would normally launch the mobile version, but for now just shows a message
+        alert('Mobile web version would launch here. Currently in development.');
+      });
+    });
+  </script>
+</body>
+</html> 

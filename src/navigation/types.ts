@@ -1,4 +1,6 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SmartHomeStackParamList } from './SmartHomeNavigator';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -41,6 +43,18 @@ export type RootStackParamList = {
   WasteCollection: undefined;
   ARContainerScanner: undefined;
   AIConfigScreen: undefined;
+  Main: undefined;
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+  ARContainerScan: undefined;
+  RecyclePointSelection: undefined;
+  MaterialsContribution: undefined;
+  CommunityChallenge: undefined;
+  SmartHome: undefined;
+  BarcodeScanner: {
+    onMaterialSelect?: (materialId: string) => void;
+  };
 };
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
@@ -54,4 +68,21 @@ export type PaymentsScreenProps = RootStackScreenProps<'Payments'>;
 export type ProfileScreenProps = RootStackScreenProps<'Profile'>;
 export type WasteCollectionScreenProps = RootStackScreenProps<'WasteCollection'>;
 export type ARContainerScannerScreenProps = RootStackScreenProps<'ARContainerScanner'>;
-export type AIConfigScreenProps = RootStackScreenProps<'AIConfigScreen'>; 
+export type AIConfigScreenProps = RootStackScreenProps<'AIConfigScreen'>;
+
+export type MainTabParamList = {
+  Home: undefined;
+  Recycle: undefined;
+  SmartHome: undefined;
+  Profile: undefined;
+};
+
+export type NavigatorParamList = {
+  Root: undefined;
+  Auth: undefined;
+  SmartHome: NavigatorScreenParams<SmartHomeStackParamList>;
+};
+
+export type AppStackParamList = RootStackParamList & 
+  MainTabParamList &
+  SmartHomeStackParamList; 

@@ -1,12 +1,16 @@
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { useStore } from '@/hooks/useStore';
+import { useTheme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { observer } from 'mobx-react-lite';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useStore } from '@/hooks/useStore';
 
 export const CollectionScreen = observer(() => {
   const { collectionStore } = useStore();
+  const theme = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [estimatedWeight, setEstimatedWeight] = useState<number>(0);
 
@@ -25,36 +29,38 @@ export const CollectionScreen = observer(() => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Schedule Plastic Collection</Text>
-      </View>
-      <View style={styles.scheduleSection}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.theme.colors.background }]}>
+      <ThemedView style={styles.header}>
+        <ThemedText style={styles.title}>Schedule Plastic Collection</ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.scheduleSection}>
         <TouchableOpacity 
-          style={styles.scheduleButton}
+          style={[styles.scheduleButton, { backgroundColor: theme.theme.colors.primary }]}
           onPress={handleScheduleCollection}
         >
-          <Text style={styles.buttonText}>Schedule New Pickup</Text>
+          <ThemedText style={[styles.buttonText, { color: theme.theme.colors.white }]}>
+            Schedule New Pickup
+          </ThemedText>
         </TouchableOpacity>
-      </View>
-      <View style={styles.scheduleForm}>
+      </ThemedView>
+      <ThemedView style={styles.scheduleForm}>
         <DateTimePicker
           value={selectedDate || new Date()}
           mode="date"
           onChange={(event, date) => setSelectedDate(date)}
         />
         <TextInput
-          style={styles.weightInput}
+          style={[styles.weightInput, { borderColor: theme.theme.colors.border }]}
           placeholder="Estimated plastic weight (kg)"
           keyboardType="numeric"
           value={estimatedWeight.toString()}
           onChangeText={text => setEstimatedWeight(Number(text))}
         />
-      </View>
-      <View style={styles.historySection}>
-        <Text style={styles.sectionTitle}>Collection History</Text>
+      </ThemedView>
+      <ThemedView style={styles.historySection}>
+        <ThemedText style={styles.sectionTitle}>Collection History</ThemedText>
         {/* Collection history list will go here */}
-      </View>
+      </ThemedView>
     </SafeAreaView>
   );
 });
@@ -62,7 +68,6 @@ export const CollectionScreen = observer(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     padding: 16,
@@ -76,13 +81,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scheduleButton: {
-    backgroundColor: '#2E7D32',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -93,9 +96,10 @@ const styles = StyleSheet.create({
   weightInput: {
     width: '100%',
     height: 40,
-    borderColor: 'gray',
     borderWidth: 1,
     marginBottom: 12,
+    padding: 8,
+    borderRadius: 4,
   },
   historySection: {
     padding: 16,

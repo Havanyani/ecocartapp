@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { RecurrenceFrequency, RecurrencePattern } from '@/services/SchedulingService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { addDays, addMonths, format } from 'date-fns';
@@ -27,7 +27,7 @@ export function RecurrencePatternSelector({
   onChange,
   onCancel,
 }: RecurrencePatternSelectorProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(
     initialPattern?.frequency || RecurrenceFrequency.WEEKLY
   );

@@ -4,14 +4,14 @@ import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { WeightTracker } from '@/components/WeightTracker';
 import { useCollections } from '@/hooks/useCollections';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,7 +41,7 @@ const filterButtons: FilterButton[] = [
 ];
 
 export function CollectionHistoryScreen() {
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { collections, isLoading, error, fetchCollections } = useCollections();
   const [selectedFilter, setSelectedFilter] = useState<FilterButton['value']>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -64,13 +64,13 @@ export function CollectionHistoryScreen() {
   const getStatusColor = (status: Collection['status']): string => {
     switch (status) {
       case 'completed':
-        return theme.colors.success;
+        return theme.theme.colors.success;
       case 'pending':
-        return theme.colors.warning;
+        return theme.theme.colors.warning;
       case 'cancelled':
-        return theme.colors.error;
+        return theme.theme.colors.error;
       default:
-        return theme.colors.text;
+        return theme.theme.colors.text;
     }
   };
 
@@ -106,14 +106,14 @@ export function CollectionHistoryScreen() {
       </View>
 
       <View style={styles.weightSection}>
-        <IconSymbol name="scale" size={20} color={theme.colors.primary} />
+        <IconSymbol name="scale" size={20} color={theme.theme.colors.primary} />
         <ThemedText style={styles.weightText}>
           {collection.weight} kg
         </ThemedText>
       </View>
 
       <View style={styles.creditsSection}>
-        <IconSymbol name="credit-card" size={20} color={theme.colors.primary} />
+        <IconSymbol name="credit-card" size={20} color={theme.theme.colors.primary} />
         <ThemedText style={styles.creditsText}>
           {collection.credits} credits earned
         </ThemedText>
@@ -124,22 +124,22 @@ export function CollectionHistoryScreen() {
           <ThemedText style={styles.impactTitle}>Environmental Impact</ThemedText>
           <View style={styles.impactGrid}>
             <View style={styles.impactItem}>
-              <IconSymbol name="recycle" size={20} color={theme.colors.success} />
+              <IconSymbol name="recycle" size={20} color={theme.theme.colors.success} />
               <ThemedText>{collection.impact.plasticSaved}kg plastic saved</ThemedText>
             </View>
             <View style={styles.impactItem}>
-              <IconSymbol name="cloud" size={20} color={theme.colors.info} />
+              <IconSymbol name="cloud" size={20} color={theme.theme.colors.info} />
               <ThemedText>{collection.impact.co2Reduced}kg CO₂ reduced</ThemedText>
             </View>
             <View style={styles.impactItem}>
-              <IconSymbol name="tree" size={20} color={theme.colors.success} />
+              <IconSymbol name="tree" size={20} color={theme.theme.colors.success} />
               <ThemedText>{collection.impact.treesEquivalent} trees equivalent</ThemedText>
             </View>
           </View>
         </View>
       )}
     </ThemedView>
-  ), [theme.colors]);
+  ), [theme.theme.colors]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -249,20 +249,24 @@ const styles = StyleSheet.create({
   impactSection: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
   },
   impactTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 8,
   },
   impactGrid: {
-    gap: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   impactItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '48%',
+    marginBottom: 8,
     gap: 8,
   },
 }); 

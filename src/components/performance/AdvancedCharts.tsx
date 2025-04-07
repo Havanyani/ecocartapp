@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { ExtendedProfileResult, Metrics } from '@/types/Performance';
 import React from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -27,7 +27,7 @@ export const AdvancedCharts: React.FC<ChartProps> = ({
   metric,
   type,
 }) => {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   const { width } = useWindowDimensions();
 
   const chartWidth = width - 48;

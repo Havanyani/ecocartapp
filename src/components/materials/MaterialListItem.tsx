@@ -1,4 +1,4 @@
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import { Material } from '@/types/Material';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
@@ -10,7 +10,7 @@ interface MaterialListItemProps {
 }
 
 export function MaterialListItem({ material }: MaterialListItemProps) {
-  const { theme } = useTheme();
+  const theme = useTheme()()()()();
 
   return (
     <Link href={`/materials/${material.id}`} asChild>

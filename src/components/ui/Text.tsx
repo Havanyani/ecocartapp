@@ -1,4 +1,5 @@
-import { useTheme } from '@/hooks/useTheme';
+import { getFontSize, getLineHeight, useTheme } from '@/theme';
+import { getSafeTheme } from '@/utils/webFallbacks';
 import React from 'react';
 import { Text as RNText, TextProps as RNTextProps, StyleSheet } from 'react-native';
 
@@ -7,7 +8,9 @@ export interface TextProps extends RNTextProps {
 }
 
 export function Text({ variant = 'body', style, ...props }: TextProps) {
-  const { theme } = useTheme();
+  // Get theme with fallback helper
+  const themeResult = useTheme();
+  const theme = getSafeTheme(themeResult);
 
   const styles = StyleSheet.create({
     base: {
@@ -15,32 +18,32 @@ export function Text({ variant = 'body', style, ...props }: TextProps) {
       fontFamily: theme.typography.fontFamily,
     },
     h1: {
-      fontSize: theme.typography.fontSize.h1,
-      lineHeight: theme.typography.lineHeight.h1,
+      fontSize: getFontSize(theme, 'h1'),
+      lineHeight: getLineHeight(theme, 'h1'),
       fontWeight: 'bold',
     },
     h2: {
-      fontSize: theme.typography.fontSize.h2,
-      lineHeight: theme.typography.lineHeight.h2,
+      fontSize: getFontSize(theme, 'h2'),
+      lineHeight: getLineHeight(theme, 'h2'),
       fontWeight: 'bold',
     },
     h3: {
-      fontSize: theme.typography.fontSize.h3,
-      lineHeight: theme.typography.lineHeight.h3,
+      fontSize: getFontSize(theme, 'h3'),
+      lineHeight: getLineHeight(theme, 'h3'),
       fontWeight: 'bold',
     },
     subtitle: {
-      fontSize: theme.typography.fontSize.subtitle,
-      lineHeight: theme.typography.lineHeight.subtitle,
+      fontSize: getFontSize(theme, 'subtitle'),
+      lineHeight: getLineHeight(theme, 'subtitle'),
       fontWeight: '600',
     },
     body: {
-      fontSize: theme.typography.fontSize.body,
-      lineHeight: theme.typography.lineHeight.body,
+      fontSize: getFontSize(theme, 'body'),
+      lineHeight: getLineHeight(theme, 'body'),
     },
     caption: {
-      fontSize: theme.typography.fontSize.caption,
-      lineHeight: theme.typography.lineHeight.caption,
+      fontSize: getFontSize(theme, 'caption'),
+      lineHeight: getLineHeight(theme, 'caption'),
       color: theme.colors.textSecondary,
     },
   });

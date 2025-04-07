@@ -1,0 +1,47 @@
+{
+  "name": "EcoCart",
+  "subtitle": "Smart Plastic Collection & Recycling",
+  "description": "EcoCart revolutionizes plastic recycling by connecting collectors with recycling points. Earn eco-credits for your contributions to a cleaner planet. Features include:\n\n• Smart Collection Routes\n• Real-time Recycling Points\n• Eco-credits Rewards\n• Community Challenges\n• Progress Tracking\n• Environmental Impact Stats",
+  "keywords": [
+    "recycling",
+    "plastic",
+    "eco",
+    "environment",
+    "sustainability",
+    "collection",
+    "rewards",
+    "green",
+    "climate",
+    "waste",
+    "management",
+    "community",
+    "challenges",
+    "credits",
+    "points",
+    "tracking",
+    "impact"
+  ],
+  "privacyPolicyUrl": "https://ecocart.app/privacy",
+  "supportUrl": "https://ecocart.app/support",
+  "marketingUrl": "https://ecocart.app",
+  "category": "Lifestyle",
+  "subcategory": "Health & Fitness",
+  "ageRating": "4+",
+  "contactEmail": "support@ecocart.app",
+  "contactPhone": "+1-555-0123-4567",
+  "companyName": "EcoCart Inc.",
+  "companyWebsite": "https://ecocart.app",
+  "copyright": "© 2024 EcoCart Inc.",
+  "version": "1.0.0",
+  "buildNumber": "1",
+  "minimumOsVersion": "14.0",
+  "languages": ["en"],
+  "localizations": {
+    "en": {
+      "name": "EcoCart",
+      "subtitle": "Smart Plastic Collection & Recycling",
+      "description": "EcoCart revolutionizes plastic recycling by connecting collectors with recycling points. Earn eco-credits for your contributions to a cleaner planet. Features include:\n\n• Smart Collection Routes\n• Real-time Recycling Points\n• Eco-credits Rewards\n• Community Challenges\n• Progress Tracking\n• Environmental Impact Stats",
+      "keywords": "recycling,plastic,eco,environment,sustainability,collection,rewards,green,climate,waste,management,community,challenges,credits,points,tracking,impact"
+    }
+  }
+} 

@@ -1,5 +1,5 @@
 import { FAQ, FAQItem } from '@/components/community/FAQ';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/theme';
 import React from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
@@ -68,7 +68,7 @@ const SAMPLE_FAQS: FAQItem[] = [
 ];
 
 export function FAQDemoScreen() {
-  const { theme } = useTheme();
+  const theme = useTheme()()();
   
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>

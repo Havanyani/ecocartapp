@@ -1,4 +1,5 @@
-import { CollectionSlot, TimeSlot, UseCollectionScheduleReturn } from '@/types/Collection';
+import { CollectionSlot, UseCollectionScheduleReturn } from '@/types/Collection';
+import { TimeSlot } from '@/types/collections';
 import { useState } from 'react';
 
 export function useCollectionSchedule(): UseCollectionScheduleReturn {
